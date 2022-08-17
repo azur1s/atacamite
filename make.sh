@@ -9,8 +9,9 @@ if [ "$1" == "ghci" ]; then
     stack ghci Main.hs --resolver lts-$resolver ${pack[@]}
     exit 0
 else
-    stack ghc Main.hs --resolver lts-$resolver ${pack[@]} -- -Wall -o ../main
+    stack ghc Main.hs --resolver lts-$resolver ${pack[@]} -- -Wall -o ../atacamite
     s=$?
     rm -f *.hi *.o
+    echo "Done!"
     exit $s
 fi

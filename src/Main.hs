@@ -4,6 +4,9 @@ import Parse (parseProgram)
 import Types (fmtProgram)
 import System.Environment (getArgs)
 
+version :: String
+version = "atacamite version 0.1.0"
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -13,4 +16,4 @@ main = do
             case parseProgram file contents of
                 Left err -> putStrLn $ "Parse error " ++ show err
                 Right prog -> putStrLn $ fmtProgram prog
-        _ -> putStrLn "no file provided"
+        _ -> putStrLn version
