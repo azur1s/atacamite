@@ -1,0 +1,16 @@
+func hello -- string bool -> void {
+    if { "!" } else { "" } puts
+    puts ; name
+    "Hello " putsln
+}
+
+func prompt -- string -> string {
+    puts flush gets
+}
+
+; main entry point
+
+entry {
+    "What is your name? " prompt
+    #true hello
+}

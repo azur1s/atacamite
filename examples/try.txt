@@ -1,0 +1,7 @@
+entry {
+    try {
+        dup ; no data on stack
+    } otherwise {
+        "It failed!" puts
+    } 
+}
