@@ -2,7 +2,7 @@ module Main where
 
 import Parse (parseProgram)
 import Types (fmtProgram)
-import Machine (initMachine, finalize)
+import Machine (initMachine, Machine (output))
 import Interpret (evalProgram)
 import System.Environment (getArgs)
 
@@ -21,5 +21,5 @@ main = do
                     putStrLn $ fmtProgram prog
                     let m = initMachine
                     let m' = evalProgram prog m
-                    putStrLn $ finalize m'
+                    m' >>= \x -> putStrLn $ concat $ reverse $ output x
         _ -> putStrLn version

@@ -2,6 +2,7 @@ module Machine where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import System.IO (hFlush, stdout)
 import Types (Value, Expr)
 
 data Machine = Machine
@@ -41,8 +42,11 @@ bind s v m = m { binds = Map.insert s v (binds m) }
 
 -- | Helper functions
 
-finalize :: Machine -> String
-finalize m = concat $ reverse $ output m
+putBuf :: Machine -> IO Machine
+putBuf m = do
+    putStr $ concat $ reverse $ output m
+    hFlush stdout
+    return m { output = [] }
 
 apply :: (Value -> Either Machine Value) -> Machine -> Machine
 apply f m = case pop m of

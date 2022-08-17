@@ -23,7 +23,7 @@ display v = case v of
     Int i -> show i
     Float f -> show f
     Bool b -> show b
-    String s -> show s
+    String s -> s
     Array a -> "[" ++ intercalate ", " (map (display . val) a) ++ "]"
 
 data Expr
