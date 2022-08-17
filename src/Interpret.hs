@@ -12,8 +12,8 @@ add m = M.apply2 (\x y -> case (x, y) of
 
 sub :: Machine -> Machine
 sub m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (x' - y')
-    (Float x', Float y') -> Right $ Float (x' - y')
+    (Int x', Int y')     -> Right $ Int (y' - x')
+    (Float x', Float y') -> Right $ Float (y' - x')
     _ -> Left $ M.err "Invalid types for `-`" m) m
 
 puts :: Machine -> Machine
