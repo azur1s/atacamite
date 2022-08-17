@@ -15,11 +15,11 @@ noise :: P.Parser ()
 noise = P.skipMany (ws P.<|> comment)
 
 identifier :: P.Parser String
-identifier = P.many1 P.letter
+identifier = P.many1 (P.letter P.<|> P.oneOf "+-*/%=<>!|&^_~@.,")
 
 reserved :: [String]
 reserved =
-    [ "+", "-", "*", "/"
+    [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "|", "&", "!"
     , "dup", "drop", "swap", "over", "rot"

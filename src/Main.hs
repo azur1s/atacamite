@@ -2,6 +2,8 @@ module Main where
 
 import Parse (parseProgram)
 import Types (fmtProgram)
+import Machine (initMachine, finalize)
+import Interpret (evalProgram)
 import System.Environment (getArgs)
 
 version :: String
@@ -15,5 +17,9 @@ main = do
             contents <- readFile file
             case parseProgram file contents of
                 Left err -> putStrLn $ "Parse error " ++ show err
-                Right prog -> putStrLn $ fmtProgram prog
+                Right prog -> do
+                    putStrLn $ fmtProgram prog
+                    let m = initMachine
+                    let m' = evalProgram prog m
+                    putStrLn $ finalize m'
         _ -> putStrLn version

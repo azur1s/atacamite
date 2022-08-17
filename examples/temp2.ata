@@ -1,0 +1,4 @@
+entry {
+    34 35 + putsln
+    500 80 - putsln
+}

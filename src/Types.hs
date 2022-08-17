@@ -17,6 +17,15 @@ data Value
     | Array  [Locatable Value]
     deriving (Show)
 
+display :: Value -> String
+display v = case v of
+    Unit -> "()"
+    Int i -> show i
+    Float f -> show f
+    Bool b -> show b
+    String s -> show s
+    Array a -> "[" ++ intercalate ", " (map (display . val) a) ++ "]"
+
 data Expr
     = Push (Locatable Value)
     | Call String
