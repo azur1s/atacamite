@@ -35,7 +35,7 @@ type Program = [Locatable Stmt]
 -- | Debug printing
 
 indent :: String -> String
-indent s = (replicate 4 ' ') ++ s
+indent s = replicate 4 ' ' ++ s
 
 nindent :: String -> String
 nindent s = "\n" ++ indent s
@@ -61,8 +61,8 @@ blue s = "\x1b[94m" ++ s ++ reset ""
 fmtLoc :: (SourcePos, SourcePos) -> String
 fmtLoc (start, end) =
     grey $ sourceName start ++ "@"
-    ++ (show $ sourceLine start) ++ ":" ++ (show $ sourceColumn start) ++ "~"
-    ++ (show $ sourceLine end)   ++ ":" ++ (show $ sourceColumn end)
+    ++ show (sourceLine start) ++ ":" ++ show (sourceColumn start) ++ "~"
+    ++ show (sourceLine end)   ++ ":" ++ show (sourceColumn end)
     ++ reset ""
 
 fmtValue :: Locatable Value -> String
@@ -73,7 +73,7 @@ fmtValue (Locatable v _) = fmt v
         fmt (Float f) = show f
         fmt (Bool b) = show b
         fmt (String s) = show s
-        fmt (Array a) = "[" ++ (intercalate ", " (map fmtValue a)) ++ "]"
+        fmt (Array a) = "[" ++ intercalate ", " (map fmtValue a) ++ "]"
 
 fmtExpr :: Locatable Expr -> String
 fmtExpr (Locatable e l) = case e of
@@ -92,7 +92,7 @@ fmtExpr (Locatable e l) = case e of
         ++ nindent (blue "}")
 
 fmtStmt :: Locatable Stmt -> String
-fmtStmt (Locatable s l) = fmt s ++ " " ++ (fmtLoc l)
+fmtStmt (Locatable s l) = fmt s ++ " " ++ fmtLoc l
     where
         fmt (Func name args ret body) = yellow "func" ++ " ( "
             ++ "name: " ++ green name

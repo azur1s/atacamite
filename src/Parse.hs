@@ -1,14 +1,15 @@
 module Parse where
 
+import Control.Monad (void)
 import qualified Text.Parsec        as P
 import qualified Text.Parsec.String as P
 import Types
 
 ws :: P.Parser ()
-ws = (P.oneOf " \t\r\n") >> return ()
+ws = void (P.oneOf " \t\r\n")
 
 comment :: P.Parser ()
-comment = (P.char ';' >> P.skipMany (P.noneOf "\r\n") >> P.char '\n') >> return ()
+comment = void (P.char ';' >> P.skipMany (P.noneOf "\r\n") >> P.char '\n')
 
 noise :: P.Parser ()
 noise = P.skipMany (ws P.<|> comment)
@@ -89,7 +90,7 @@ callintr = do
     start <- P.getPosition
     c <- identifier
     end <- P.getPosition
-    if elem c reserved
+    if c `elem` reserved
         then return $ Locatable (Intr c) (start, end)
         else return $ Locatable (Call c) (start, end)
 
@@ -146,8 +147,7 @@ entry = do
 
 program :: P.Parser Program
 program = do
-    stmts <- P.many1 (noise *> P.choice [func, entry] <* noise) P.<?> "program"
-    return stmts
+    P.many1 (noise *> P.choice [func, entry] <* noise) P.<?> "program"
 
 parseProgram :: String -> String -> Either P.ParseError Program
-parseProgram file source = P.parse program file source
+parseProgram = P.parse program
