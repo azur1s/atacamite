@@ -1,7 +1,3 @@
-func prompt -- string : () {
-    puts flush gets
-}
-
 entry {
-    "What is your name? " prompt "Hello " puts drop puts
+    34 35 + ? putsln
 }

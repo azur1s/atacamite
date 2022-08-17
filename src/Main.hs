@@ -18,7 +18,7 @@ main = do
             case parseProgram file contents of
                 Left err -> putStrLn $ "Parse error " ++ show err
                 Right prog -> do
-                    putStrLn $ fmtProgram prog
+                    -- putStrLn $ fmtProgram prog
                     let m = initMachine
                     let m' = evalProgram prog m
                     m' >>= \x -> putStrLn $ concat $ reverse $ output x

@@ -1,6 +1,8 @@
 func hello -- string bool : () {
     if { "!" } else { "" }
-    "Hello " puts swap puts putsln
+    "Hello "
+    rot swap
+    puts puts putsln
 }
 
 func prompt -- string : string {

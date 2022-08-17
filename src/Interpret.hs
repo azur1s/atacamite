@@ -96,6 +96,9 @@ not m = M.apply (\case
     Bool x' -> Right $ Bool (Prelude.not x')
     _ -> Left $ M.err "Invalid types for `!`" m) m
 
+drop :: Machine -> Machine
+drop m = snd $ M.pop m
+
 truth :: Machine -> (Maybe Bool, Machine)
 truth m = case M.pop m of
     (Just x, m') -> case x of
@@ -133,11 +136,12 @@ evalExpr e m = case e of
             print $ stack m
             return m
         "dup"    -> r $ M.apply (\x -> Left $ m { stack = x : stack m }) m
-        "drop"   -> r $ snd $ M.pop m
-        "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack m }) m
-        "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack m }) m
-        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (snd $ M.pop m)) m
-        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (snd $ M.pop m)) m
+        "drop"   -> r $ drop m
+        "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack (drop $ drop m) }) m
+        "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack (drop $ drop m) }) m
+        "rot"    -> r $ M.apply3 (\x y z -> Left $ m { stack = z : x : y : stack (drop $ drop $ drop m) }) m
+        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (drop m)) m
+        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (drop m)) m
         "gets"   -> getLine >>= \x -> r $ M.push (String x) m
         "flush"  -> M.putBuf m
         -- Probably will never happen because
