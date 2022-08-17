@@ -15,13 +15,14 @@ noise :: P.Parser ()
 noise = P.skipMany (ws P.<|> comment)
 
 identifier :: P.Parser String
-identifier = P.many1 (P.letter P.<|> P.oneOf "+-*/%=<>!|&^_~@.,")
+identifier = P.many1 (P.letter P.<|> P.oneOf "+-*/%^=<>!|&?_~@.,()")
 
 reserved :: [String]
 reserved =
     [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "|", "&", "!"
+    , "?"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush"
@@ -127,10 +128,10 @@ func = do
     _ <- P.string "func" >> noise
     name <- identifier
     _ <- noise >> P.string "--" >> noise
-    tys <- P.many (noise *> identifier <* noise)
-    _ <- noise >> P.string "->" >> noise
-    ret <- identifier
-    _ <- noise >> P.string "{" >> noise
+    tys <- P.many (noise *> identifier <* noise) P.<?> "argument types"
+    _ <- P.string ":"
+    ret <- noise *> identifier <* noise P.<?> "return type"
+    _ <- P.string "{"
     body <- P.many1 (noise *> expr <* noise)
     _ <- noise >> P.string "}" >> noise
     end <- P.getPosition

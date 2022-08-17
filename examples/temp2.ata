@@ -1,3 +1,7 @@
+func prompt -- string : () {
+    puts flush gets
+}
+
 entry {
-    "What is your name? " puts flush gets "Hello " puts drop puts
+    "What is your name? " prompt "Hello " puts drop puts
 }

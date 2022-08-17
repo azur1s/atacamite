@@ -1,10 +1,9 @@
-func hello -- string bool -> void {
-    if { "!" } else { "" } puts
-    puts ; name
-    "Hello " putsln
+func hello -- string bool : () {
+    if { "!" } else { "" }
+    "Hello " puts swap puts putsln
 }
 
-func prompt -- string -> string {
+func prompt -- string : string {
     puts flush gets
 }
 

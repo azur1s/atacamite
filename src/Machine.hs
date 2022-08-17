@@ -9,7 +9,7 @@ data Machine = Machine
     { fault  :: Bool
     , stack  :: [Value]
     , binds  :: Map String Value
-    , funcs  :: Map String Expr
+    , funcs  :: Map String [Expr]
     , output :: [String]
     } deriving (Show)
 
@@ -39,6 +39,15 @@ pop m = case stack m of
 
 bind :: String -> Value -> Machine -> Machine
 bind s v m = m { binds = Map.insert s v (binds m) }
+
+get :: String -> Machine -> Maybe Value
+get s m = Map.lookup s (binds m)
+
+bindFunc :: String -> [Expr] -> Machine -> Machine
+bindFunc s body m = m { funcs = Map.insert s body (funcs m) }
+
+getFunc :: String -> Machine -> Maybe [Expr]
+getFunc s m = Map.lookup s (funcs m)
 
 -- | Helper functions
 

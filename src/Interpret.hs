@@ -96,12 +96,23 @@ not m = M.apply (\case
     Bool x' -> Right $ Bool (Prelude.not x')
     _ -> Left $ M.err "Invalid types for `!`" m) m
 
+truth :: Machine -> (Maybe Bool, Machine)
+truth m = case M.pop m of
+    (Just x, m') -> case x of
+        Bool x' -> (Just x', m')
+        _ -> (Nothing, M.err "Invalid type for `truth`" m)
+    _ -> (Nothing, M.err "Invalid type for `truth`" m)
+
 r = return
 
 evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
     Push lv -> r $ M.push (val lv) m
-    Call s -> undefined
+    Call s -> do
+        let f = M.getFunc s m
+        case f of
+            Just body -> evalExprs body m
+            Nothing   -> return $ M.err ("Function not found: " ++ s) m
     Intr s -> case s of
         "+"  -> r $ add m
         "-"  -> r $ sub m
@@ -118,18 +129,25 @@ evalExpr e m = case e of
         "||" -> r $ Interpret.or m
         "&&" -> r $ Interpret.and m
         "!"  -> r $ Interpret.not m
+        "?"  -> do
+            print $ stack m
+            return m
         "dup"    -> r $ M.apply (\x -> Left $ m { stack = x : stack m }) m
         "drop"   -> r $ snd $ M.pop m
         "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack m }) m
         "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack m }) m
-        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) m) m
-        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") m) m
+        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (snd $ M.pop m)) m
+        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (snd $ M.pop m)) m
         "gets"   -> getLine >>= \x -> r $ M.push (String x) m
         "flush"  -> M.putBuf m
         -- Probably will never happen because
         -- parser should've caught it
         _ -> r $ M.err ("Unknown intrinsic: `" ++ s ++ "`") m
-    If t f -> undefined
+    If t f -> do
+        let (b, m') = truth m
+        if b == Just True
+        then evalExprs (map val t) m'
+        else evalExprs (map val f) m'
     Try t o -> undefined
 
 evalExprs :: [Expr] -> Machine -> IO Machine
@@ -138,7 +156,7 @@ evalExprs es m = foldl (>>=) (return m) (map evalExpr es)
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
     Entry body -> evalExprs (map val body) m
-    Func name _ _ body -> undefined
+    Func name _ _ body -> r $ M.bindFunc name (map val body) m
 
 evalProgram :: Program -> Machine -> IO Machine
 evalProgram p m = foldl (>>=) (return m) (map (evalStmt . val) p)
