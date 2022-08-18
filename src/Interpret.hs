@@ -112,11 +112,11 @@ evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
     Push lv -> r $ M.push (val lv) m
     Call s -> do
-        let f = M.getFunc s m
+        let f = M.getFunc (val s) m
         case f of
             Just body -> evalExprs body m
-            Nothing   -> return $ M.err ("Function not found: " ++ s) m
-    Intr s -> case s of
+            Nothing   -> return $ M.err ("Function not found: " ++ val s) m
+    Intr s -> case val s of
         "+"  -> r $ add m
         "-"  -> r $ sub m
         "*"  -> r $ mul m
@@ -146,7 +146,7 @@ evalExpr e m = case e of
         "flush"  -> M.putBuf m
         -- Probably will never happen because
         -- parser should've caught it
-        _ -> r $ M.err ("Unknown intrinsic: `" ++ s ++ "`") m
+        _ -> r $ M.err ("Unknown intrinsic: `" ++ val s ++ "`") m
     If t f -> do
         let (b, m') = truth m
         if b == Just True
@@ -155,7 +155,10 @@ evalExpr e m = case e of
     Try t o -> undefined
 
 evalExprs :: [Expr] -> Machine -> IO Machine
-evalExprs es m = foldl (>>=) (return m) (map evalExpr es)
+evalExprs [] m = return m
+evalExprs (e:es) m = do
+    m' <- evalExpr e m
+    if fault m' then return m' else evalExprs es m'
 
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
@@ -163,4 +166,7 @@ evalStmt s m = case s of
     Func name _ _ body -> r $ M.bindFunc name (map val body) m
 
 evalProgram :: Program -> Machine -> IO Machine
-evalProgram p m = foldl (>>=) (return m) (map (evalStmt . val) p)
+evalProgram [] m = return m
+evalProgram (s:ss) m = do
+    m' <- evalStmt (val s) m
+    if fault m' then return m' else evalProgram ss m'

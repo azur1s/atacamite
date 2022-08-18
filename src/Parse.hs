@@ -3,6 +3,7 @@ module Parse where
 import Control.Monad (void)
 import qualified Text.Parsec        as P
 import qualified Text.Parsec.String as P
+import Data.Maybe (fromMaybe)
 import Types
 
 ws :: P.Parser ()
@@ -28,14 +29,13 @@ reserved =
     , "gets", "flush"
     ]
 
--- | Values
+builtinType :: [String]
+builtinType =
+    [ "int", "float", "bool", "string"
+    , "()"
+    ]
 
-unit :: P.Parser (Locatable Value)
-unit = do
-    start <- P.getPosition
-    _ <- P.string "()"
-    end <- P.getPosition
-    return $ Locatable Unit (start, end)
+-- | Values
 
 int :: P.Parser (Locatable Value)
 int = do
@@ -92,8 +92,8 @@ callintr = do
     c <- identifier
     end <- P.getPosition
     if c `elem` reserved
-        then return $ Locatable (Intr c) (start, end)
-        else return $ Locatable (Call c) (start, end)
+        then return $ Locatable (Intr (Locatable c (start, end))) (start, end)
+        else return $ Locatable (Call (Locatable c (start, end))) (start, end)
 
 ifelse :: P.Parser (Locatable Expr)
 ifelse = do
@@ -120,6 +120,37 @@ try = do
 expr :: P.Parser (Locatable Expr)
 expr = P.choice [ifelse, try, push, callintr] P.<?> "expression"
 
+-- | Typehints
+
+builtin :: P.Parser (Locatable Typehint)
+builtin = do
+    start <- P.getPosition
+    c <- identifier
+    end <- P.getPosition
+    if c `elem` builtinType
+    then do
+        let b = case c of
+                "()"     -> Builtin BUnit
+                "int"    -> Builtin BInt
+                "float"  -> Builtin BFloat
+                "bool"   -> Builtin BBool
+                "string" -> Builtin BString
+                _ -> error "unreachable"
+        return $ Locatable b (start, end)
+    else P.unexpected "builtin type"
+
+tyarray :: P.Parser (Locatable Typehint)
+tyarray = do
+    start <- P.getPosition
+    _ <- P.char '[' >> noise
+    t <- typehint
+    _ <- noise >> P.char ']' >> noise
+    end <- P.getPosition
+    return $ Locatable (TyArray t) (start, end)
+
+typehint :: P.Parser (Locatable Typehint)
+typehint = P.choice [builtin, tyarray] P.<?> "typehint"
+
 -- | Statements
 
 func :: P.Parser (Locatable Stmt)
@@ -128,9 +159,9 @@ func = do
     _ <- P.string "func" >> noise
     name <- identifier
     _ <- noise >> P.string "--" >> noise
-    tys <- P.many (noise *> identifier <* noise) P.<?> "argument types"
-    _ <- P.string ":"
-    ret <- noise *> identifier <* noise P.<?> "return type"
+    tys <- P.sepBy (noise *> typehint <* noise) noise
+    _ <- noise >> P.string ":" >> noise
+    ret <- noise *> typehint <* noise P.<?> "return type"
     _ <- P.string "{"
     body <- P.many1 (noise *> expr <* noise)
     _ <- noise >> P.string "}" >> noise

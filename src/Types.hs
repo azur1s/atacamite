@@ -8,6 +8,9 @@ data Locatable a = Locatable
     , loc :: (SourcePos, SourcePos)
     } deriving (Show)
 
+loc2ints :: Locatable a -> (Int, Int)
+loc2ints (Locatable _ (start, end)) = (sourceLine start, sourceColumn start)
+
 data Value
     = Unit
     | Int    Int
@@ -26,16 +29,22 @@ display v = case v of
     String s -> s
     Array a -> "[" ++ intercalate ", " (map (display . val) a) ++ "]"
 
+data Builtin = BUnit | BInt | BFloat | BBool | BString deriving (Show)
+data Typehint
+    = Builtin Builtin
+    | TyArray (Locatable Typehint)
+    deriving (Show)
+
 data Expr
     = Push (Locatable Value)
-    | Call String
-    | Intr String -- Intrinsic
+    | Call (Locatable String)
+    | Intr (Locatable String) -- Intrinsic
     | If   [Locatable Expr] [Locatable Expr]
     | Try  [Locatable Expr] [Locatable Expr]
     deriving (Show)
 
 data Stmt
-    = Func String [String] String [Locatable Expr]
+    = Func String [Locatable Typehint] (Locatable Typehint) [Locatable Expr]
     | Entry [Locatable Expr]
     deriving (Show)
 
@@ -84,11 +93,24 @@ fmtValue (Locatable v _) = fmt v
         fmt (String s) = show s
         fmt (Array a) = "[" ++ intercalate ", " (map fmtValue a) ++ "]"
 
+fmtBuiltin :: Builtin -> String
+fmtBuiltin b = case b of
+    BUnit   -> "()"
+    BInt    -> "Int"
+    BFloat  -> "Float"
+    BBool   -> "Bool"
+    BString -> "String"
+
+fmtTypehint :: Typehint -> String
+fmtTypehint ty = case ty of
+    Builtin b -> fmtBuiltin b
+    TyArray t -> "[" ++ fmtTypehint (val t) ++ "]"
+
 fmtExpr :: Locatable Expr -> String
 fmtExpr (Locatable e l) = case e of
     Push v -> yellow $ fmtValue v ++ " " ++ fmtLoc l
-    Call s -> s ++ " " ++ fmtLoc l
-    Intr s -> red s ++ " " ++ fmtLoc l
+    Call s -> val s ++ " " ++ fmtLoc l
+    Intr s -> red $ val s ++ " " ++ fmtLoc l
     If t f -> blue "if {\n"
         ++ indent (intercalate (nindent "") $ map fmtExpr t)
         ++ nindent (blue "} else {\n")
@@ -105,8 +127,8 @@ fmtStmt (Locatable s l) = fmt s ++ " " ++ fmtLoc l
     where
         fmt (Func name args ret body) = yellow "func" ++ " ( "
             ++ "name: " ++ green name
-            ++ "; args: " ++ green (intercalate ", " args)
-            ++ "; return: " ++ green ret
+            ++ "; args: " ++ green (intercalate ", " (fmtTypehint . val <$> args))
+            ++ "; return: " ++ green (fmtTypehint $ val ret)
             ++ " ) " ++ yellow "{\n" ++ indent (intercalate (nindent "") $ map fmtExpr body) ++ yellow "\n}"
         fmt (Entry body) = yellow "entry {\n" ++ indent (intercalate (nindent "") $ map fmtExpr body) ++ yellow "\n}"
 
