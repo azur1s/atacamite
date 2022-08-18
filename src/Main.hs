@@ -15,10 +15,10 @@ main = do
     case args of
         [file] -> do
             contents <- readFile file
-            case parseProgram file contents of
+            case parseProgram file (contents ++ "\n") of
                 Left err -> putStrLn $ "Parse error " ++ show err
                 Right prog -> do
-                    putStrLn $ fmtProgram prog
+                    -- putStrLn $ fmtProgram prog
                     let m = initMachine
                     let m' = evalProgram prog m
                     m' >>= \x -> putStr $ concat $ reverse $ output x

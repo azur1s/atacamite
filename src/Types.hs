@@ -41,10 +41,12 @@ data Expr
     | Intr (Locatable String) -- Intrinsic
     | If   [Locatable Expr] [Locatable Expr]
     | Try  [Locatable Expr] [Locatable Expr]
+    | Take [Locatable String] [Locatable Expr]
+    | Peek [Locatable String] [Locatable Expr]
     deriving (Show)
 
 data Stmt
-    = Func String [Locatable Typehint] (Locatable Typehint) [Locatable Expr]
+    = Func String [Locatable Typehint] [Locatable Typehint] [Locatable Expr]
     | Entry [Locatable Expr]
     deriving (Show)
 
@@ -121,6 +123,12 @@ fmtExpr (Locatable e l) = case e of
         ++ nindent (blue "} catch {\n")
         ++ indent (intercalate (nindent "") $ map fmtExpr o)
         ++ nindent (blue "}")
+    Take b e -> blue "grab " ++ green (intercalate ", " (map val b)) ++ blue " {\n"
+        ++ indent (intercalate (nindent "") $ map fmtExpr e)
+        ++ nindent (blue "}")
+    Peek b e -> blue "peek " ++ green (intercalate ", " (map val b)) ++ blue " {\n"
+        ++ indent (intercalate (nindent "") $ map fmtExpr e)
+        ++ nindent (blue "}")
 
 fmtStmt :: Locatable Stmt -> String
 fmtStmt (Locatable s l) = fmt s ++ " " ++ fmtLoc l
@@ -128,7 +136,7 @@ fmtStmt (Locatable s l) = fmt s ++ " " ++ fmtLoc l
         fmt (Func name args ret body) = yellow "func" ++ " ( "
             ++ "name: " ++ green name
             ++ "; args: " ++ green (intercalate ", " (fmtTypehint . val <$> args))
-            ++ "; return: " ++ green (fmtTypehint $ val ret)
+            ++ "; return: " ++ green (intercalate ", " (fmtTypehint . val <$> ret))
             ++ " ) " ++ yellow "{\n" ++ indent (intercalate (nindent "") $ map fmtExpr body) ++ yellow "\n}"
         fmt (Entry body) = yellow "entry {\n" ++ indent (intercalate (nindent "") $ map fmtExpr body) ++ yellow "\n}"
 

@@ -10,13 +10,25 @@ ws :: P.Parser ()
 ws = void (P.oneOf " \t\r\n")
 
 comment :: P.Parser ()
-comment = void (P.char ';' >> P.skipMany (P.noneOf "\r\n") >> P.char '\n')
+comment = void (P.char ';' >> P.skipMany (P.noneOf "\r\n") >> P.char '\n' P.<?> "comment")
 
 noise :: P.Parser ()
 noise = P.skipMany (ws P.<|> comment)
 
 identifier :: P.Parser String
-identifier = P.many1 (P.letter P.<|> P.oneOf "+-*/%^=<>!|&?_~@.,()")
+identifier = do
+    c <- P.letter P.<|> P.oneOf chars
+    cs <- P.optionMaybe (P.many (P.letter P.<|> P.oneOf "+-*/%^=<>!|&?_." P.<|> P.digit))
+    return $ c : fromMaybe "" cs
+    where
+        chars = "_+-*/%^=<>!|&?_~@."
+
+identifier' :: P.Parser (Locatable String)
+identifier' = do
+    s <- P.getPosition
+    i <- identifier
+    e <- P.getPosition
+    return $ Locatable i (s, e)
 
 reserved :: [String]
 reserved =
@@ -27,13 +39,11 @@ reserved =
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush"
+    , "void"
     ]
 
 builtinType :: [String]
-builtinType =
-    [ "int", "float", "bool", "string"
-    , "()"
-    ]
+builtinType = [ "int", "float", "bool", "string", "unit" ]
 
 -- | Values
 
@@ -117,8 +127,30 @@ try = do
     end <- P.getPosition
     return $ Locatable (Try t o) (start, end)
 
+grab :: P.Parser (Locatable Expr)
+grab = do
+    start <- P.getPosition
+    _ <- P.string "@" >> noise
+    b <- P.many1 (noise *> identifier' <* noise)
+    _ <- noise >> P.string "{" >> noise
+    e <- P.many1 (noise *> expr <* noise)
+    _ <- noise >> P.string "}" >> noise
+    end <- P.getPosition
+    return $ Locatable (Take b e) (start, end) 
+
+peek :: P.Parser (Locatable Expr)
+peek = do
+    start <- P.getPosition
+    _ <- P.string "~" >> noise
+    b <- P.many1 (noise *> identifier' <* noise)
+    _ <- noise >> P.string "{" >> noise
+    e <- P.many1 (noise *> expr <* noise)
+    _ <- noise >> P.string "}" >> noise
+    end <- P.getPosition
+    return $ Locatable (Peek b e) (start, end)
+
 expr :: P.Parser (Locatable Expr)
-expr = P.choice [ifelse, try, push, callintr] P.<?> "expression"
+expr = P.choice [ifelse, grab, peek, try, push, callintr] P.<?> "expression"
 
 -- | Typehints
 
@@ -130,14 +162,14 @@ builtin = do
     if c `elem` builtinType
     then do
         let b = case c of
-                "()"     -> Builtin BUnit
+                "unit"   -> Builtin BUnit
                 "int"    -> Builtin BInt
                 "float"  -> Builtin BFloat
                 "bool"   -> Builtin BBool
                 "string" -> Builtin BString
                 _ -> error "unreachable"
         return $ Locatable b (start, end)
-    else P.unexpected "builtin type"
+    else P.unexpected ("builtin type `" ++ c ++ "`")
 
 tyarray :: P.Parser (Locatable Typehint)
 tyarray = do
@@ -158,11 +190,11 @@ func = do
     start <- P.getPosition
     _ <- P.string "func" >> noise
     name <- identifier
-    _ <- noise >> P.string "--" >> noise
+    _ <- noise >> P.string "(" >> noise
     tys <- P.sepBy (noise *> typehint <* noise) noise
-    _ <- noise >> P.string ":" >> noise
-    ret <- noise *> typehint <* noise P.<?> "return type"
-    _ <- P.string "{"
+    _ <- noise >> P.string "--" >> noise
+    ret <- P.sepBy (noise *> typehint <* noise) noise
+    _ <- noise >> P.string ")" >> noise >> P.string "{" >> noise
     body <- P.many1 (noise *> expr <* noise)
     _ <- noise >> P.string "}" >> noise
     end <- P.getPosition
@@ -179,7 +211,7 @@ entry = do
 
 program :: P.Parser Program
 program = do
-    P.many1 (noise *> P.choice [func, entry] <* noise) P.<?> "program"
+    P.many1 (noise *> P.choice [func, entry] <* noise) <* noise <* P.eof P.<?> "program"
 
 parseProgram :: String -> String -> Either P.ParseError Program
 parseProgram = P.parse program

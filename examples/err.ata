@@ -1,7 +1,0 @@
-func add -- int int : int {
-    +
-}
-
-entry {
-    34 35 add
-}

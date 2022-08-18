@@ -29,6 +29,9 @@ err :: String -> Machine -> Machine
 err s m = m { output = ("Error: " ++ s) : output m
             , fault = True }
 
+drop :: Int -> Machine -> Machine
+drop n m = m { stack = Prelude.drop n (stack m) }
+
 push :: Value -> Machine -> Machine
 push v m = m { stack = v : stack m }
 
@@ -55,6 +58,9 @@ pop3 m = case stack m of
 
 bind :: String -> Value -> Machine -> Machine
 bind s v m = m { binds = Map.insert s v (binds m) }
+
+bindl :: [(String, Value)] -> Machine -> Machine
+bindl bs m = foldl (\m (s, v) -> bind s v m) m bs
 
 get :: String -> Machine -> Maybe Value
 get s m = Map.lookup s (binds m)

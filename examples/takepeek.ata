@@ -1,0 +1,25 @@
+entry {
+    ; take
+    34 35 "some garbage"
+    @ A B C {
+        ; take A B C from the stack
+        ; A is now 34, B is now 35 and so on
+        ; stack is now empty
+        A B + putsln
+    }
+
+    1 0 0 0 1
+    @ A _ _ _ B {
+        ; A and B is now 1 (others is not ignored, it is stored in `_`)
+        A B = if { "It is equal!" } else { "It is not equal, sad :(" }
+        putsln
+    }
+
+    ; peek
+    1 2 3 4 5
+    ~ A B C D E {
+        ; peek doesn't remove element from the stack
+        A "peeked: " puts putsln
+        "on stack: " puts putsln
+    }
+}

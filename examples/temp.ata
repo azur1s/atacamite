@@ -1,15 +1,17 @@
-func hello -- string bool : () {
+func hello ( string bool -- unit ) {
     if { "!" } else { "" }
     "Hello "
     rot swap
     puts puts putsln
 }
 
-func prompt -- string : string {
+func prompt ( string -- string ) {
     puts flush gets
 }
 
-; main entry point
+func t ( -- ) { "" puts }
+func t2 ( string -- ) { drop }
+func t3 ( -- string ) { "Hello" }
 
 entry {
     "What is your name? " prompt

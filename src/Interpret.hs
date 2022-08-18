@@ -10,36 +10,36 @@ add :: Machine -> Machine
 add m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (x' + y')
     (Float x', Float y') -> Right $ Float (x' + y')
-    _ -> Left $ M.err "Invalid types for `+`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `+` on " ++ show x ++ " and " ++ show y) m) m
 
 sub :: Machine -> Machine
 sub m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (y' - x')
     (Float x', Float y') -> Right $ Float (y' - x')
-    _ -> Left $ M.err "Invalid types for `-`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `-` on " ++ show x ++ " and " ++ show y) m) m
 
 mul :: Machine -> Machine
 mul m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (x' * y')
     (Float x', Float y') -> Right $ Float (x' * y')
-    _ -> Left $ M.err "Invalid types for `*`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `*` on " ++ show x ++ " and " ++ show y) m) m
 
 div :: Machine -> Machine
 div m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (Prelude.div y' x')
     (Float x', Float y') -> Right $ Float (y' / x')
-    _ -> Left $ M.err "Invalid types for `/`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `/` on " ++ show x ++ " and " ++ show y) m) m
 
 mod :: Machine -> Machine
 mod m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (Prelude.mod y' x')
-    _ -> Left $ M.err "Invalid types for `%`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `%` on " ++ show x ++ " and " ++ show y) m) m
 
 exp :: Machine -> Machine
 exp m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')     -> Right $ Int (y' ^ x')
     (Float x', Float y') -> Right $ Float (y' ** x')
-    _ -> Left $ M.err "Invalid types for `^`" m) m
+    (x, y)               -> Left $ M.err ("Cannot perform `^` on " ++ show x ++ " and " ++ show y) m) m
 
 eq :: Machine -> Machine
 eq m = M.apply2 (\x y -> case (x, y) of
@@ -47,31 +47,31 @@ eq m = M.apply2 (\x y -> case (x, y) of
     (Float x', Float y')   -> Right $ Bool (x' == y')
     (Bool x', Bool y')     -> Right $ Bool (x' == y')
     (String x', String y') -> Right $ Bool (x' == y')
-    _ -> Left $ M.err "Invalid types for `==`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `==` on " ++ show x ++ " and " ++ show y) m) m
 
 gt :: Machine -> Machine
 gt m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')       -> Right $ Bool (x' > y')
     (Float x', Float y')   -> Right $ Bool (x' > y')
-    _ -> Left $ M.err "Invalid types for `>`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `>` on " ++ show x ++ " and " ++ show y) m) m
 
 lt :: Machine -> Machine
 lt m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')       -> Right $ Bool (x' < y')
     (Float x', Float y')   -> Right $ Bool (x' < y')
-    _ -> Left $ M.err "Invalid types for `<`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `<` on " ++ show x ++ " and " ++ show y) m) m
 
 ge :: Machine -> Machine
 ge m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')       -> Right $ Bool (x' >= y')
     (Float x', Float y')   -> Right $ Bool (x' >= y')
-    _ -> Left $ M.err "Invalid types for `>=`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `>=` on " ++ show x ++ " and " ++ show y) m) m
 
 le :: Machine -> Machine
 le m = M.apply2 (\x y -> case (x, y) of
     (Int x', Int y')       -> Right $ Bool (x' <= y')
     (Float x', Float y')   -> Right $ Bool (x' <= y')
-    _ -> Left $ M.err "Invalid types for `<=`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `<=` on " ++ show x ++ " and " ++ show y) m) m
 
 ne :: Machine -> Machine
 ne m = M.apply2 (\x y -> case (x, y) of
@@ -79,25 +79,22 @@ ne m = M.apply2 (\x y -> case (x, y) of
     (Float x', Float y')   -> Right $ Bool (x' /= y')
     (Bool x', Bool y')     -> Right $ Bool (x' /= y')
     (String x', String y') -> Right $ Bool (x' /= y')
-    _ -> Left $ M.err "Invalid types for `!=`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `!=` on " ++ show x ++ " and " ++ show y) m) m
 
 or :: Machine -> Machine
 or m = M.apply2 (\x y -> case (x, y) of
     (Bool x', Bool y')     -> Right $ Bool (x' || y')
-    _ -> Left $ M.err "Invalid types for `||`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `|` on " ++ show x ++ " and " ++ show y) m) m
 
 and :: Machine -> Machine
 and m = M.apply2 (\x y -> case (x, y) of
     (Bool x', Bool y')     -> Right $ Bool (x' && y')
-    _ -> Left $ M.err "Invalid types for `&&`" m) m
+    (x, y)                 -> Left $ M.err ("Cannot perform `&` on " ++ show x ++ " and " ++ show y) m) m
 
 not :: Machine -> Machine
 not m = M.apply (\case
     Bool x' -> Right $ Bool (Prelude.not x')
-    _ -> Left $ M.err "Invalid types for `!`" m) m
-
-drop :: Machine -> Machine
-drop m = snd $ M.pop m
+    x       -> Left $ M.err ("Cannot perform `!` on " ++ show x) m) m
 
 truth :: Machine -> (Maybe Bool, Machine)
 truth m = case M.pop m of
@@ -115,7 +112,11 @@ evalExpr e m = case e of
         let f = M.getFunc (val s) m
         case f of
             Just body -> evalExprs body m
-            Nothing   -> return $ M.err ("Function not found: " ++ val s) m
+            Nothing   -> do
+                let mv = M.get (val s) m
+                case mv of
+                    Nothing -> r $ M.err ("Function not found: " ++ val s) m
+                    Just va -> r $ M.push va m
     Intr s -> case val s of
         "+"  -> r $ add m
         "-"  -> r $ sub m
@@ -136,17 +137,18 @@ evalExpr e m = case e of
             print $ stack m
             return m
         "dup"    -> r $ M.apply (\x -> Left $ m { stack = x : stack m }) m
-        "drop"   -> r $ drop m
-        "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack (drop $ drop m) }) m
-        "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack (drop $ drop m) }) m
-        "rot"    -> r $ M.apply3 (\x y z -> Left $ m { stack = z : x : y : stack (drop $ drop $ drop m) }) m
-        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (drop m)) m
-        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (drop m)) m
+        "drop"   -> r $ M.drop 1 m
+        "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack (M.drop 2 m) }) m
+        "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack (M.drop 2 m) }) m
+        "rot"    -> r $ M.apply3 (\x y z -> Left $ m { stack = z : x : y : stack (M.drop 3 m) }) m
+        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (M.drop 1 m)) m
+        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (M.drop 1 m)) m
         "gets"   -> getLine >>= \x -> r $ M.push (String x) m
         "flush"  -> M.putBuf m
+        "void"   -> r m
         -- Probably will never happen because
         -- parser should've caught it
-        _ -> r $ M.err ("Unknown intrinsic: `" ++ val s ++ "`") m
+        _ -> error "unreachable"
     If t f -> do
         let (b, m') = truth m
         if b == Just True
@@ -157,6 +159,22 @@ evalExpr e m = case e of
         iom >>= \m' -> if fault m'
             then evalExprs (map val o) m
             else return m'
+    Take vs body -> do
+        let len = length vs
+        if len > length (stack m) then
+            r $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
+        else do
+            let elems = reverse $ take len (stack m)
+            let m' = M.bindl (zip (map val vs) elems) (M.drop len m)
+            evalExprs (map val body) m'
+    Peek vs body -> do
+        let len = length vs
+        if len > length (stack m) then
+            r $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
+        else do
+            let elems = reverse $ take len (stack m)
+            let m' = M.bindl (zip (map val vs) elems) m
+            evalExprs (map val body) m'
 
 evalExprs :: [Expr] -> Machine -> IO Machine
 evalExprs [] m = return m
