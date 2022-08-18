@@ -1,180 +1,226 @@
-{-# LANGUAGE LambdaCase #-}
 module Interpret where
 
 import Machine (Machine (..))
+import Parse (Expr (..), Locatable (..), Stmt(..), Program, Atom (..), printAtom)
 import qualified Machine as M
-import Types
-import Prelude hiding (drop)
 
-add :: Machine -> Machine
-add m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (x' + y')
-    (Float x', Float y') -> Right $ Float (x' + y')
-    (x, y)               -> Left $ M.err ("Cannot perform `+` on " ++ show x ++ " and " ++ show y) m) m
+check :: Machine -> (Maybe Atom, Machine)
+check m = if fault c then (Nothing, c) else do
+    let (a, m')  = M.popUnsafe c
+    (Just a, m')
+    where c = M.require 1 m
 
-sub :: Machine -> Machine
-sub m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (y' - x')
-    (Float x', Float y') -> Right $ Float (y' - x')
-    (x, y)               -> Left $ M.err ("Cannot perform `-` on " ++ show x ++ " and " ++ show y) m) m
+check2 :: Machine -> (Maybe (Atom, Atom), Machine)
+check2 m = if fault c then (Nothing, c) else do
+    let (a, m')  = M.popUnsafe c
+    let (b, m'') = M.popUnsafe m'
+    (Just (a, b), m'')
+    where c = M.require 2 m
 
-mul :: Machine -> Machine
-mul m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (x' * y')
-    (Float x', Float y') -> Right $ Float (x' * y')
-    (x, y)               -> Left $ M.err ("Cannot perform `*` on " ++ show x ++ " and " ++ show y) m) m
+binopErr :: [Char] -> Atom -> Atom -> Machine -> Machine
+binopErr op a b = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a ++ " and " ++ show b)
 
-div :: Machine -> Machine
-div m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (Prelude.div y' x')
-    (Float x', Float y') -> Right $ Float (y' / x')
-    (x, y)               -> Left $ M.err ("Cannot perform `/` on " ++ show x ++ " and " ++ show y) m) m
+unaopErr :: [Char] -> Atom -> Machine -> Machine
+unaopErr op a = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a)
 
-mod :: Machine -> Machine
-mod m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (Prelude.mod y' x')
-    (x, y)               -> Left $ M.err ("Cannot perform `%` on " ++ show x ++ " and " ++ show y) m) m
+add, sub, mul, div, mod :: Machine -> Machine
+eq, gt, lt, ge, le, ne, or, and, not :: Machine -> Machine
 
-exp :: Machine -> Machine
-exp m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')     -> Right $ Int (y' ^ x')
-    (Float x', Float y') -> Right $ Float (y' ** x')
-    (x, y)               -> Left $ M.err ("Cannot perform `^` on " ++ show x ++ " and " ++ show y) m) m
+add m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (a + b)) m'
+        (AFloat a, AFloat b) -> M.push (AFloat (a + b)) m'
+        (a, b) -> binopErr "+" a b m'
+    (Nothing, m') -> error "unreachable"
 
-eq :: Machine -> Machine
-eq m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' == y')
-    (Float x', Float y')   -> Right $ Bool (x' == y')
-    (Bool x', Bool y')     -> Right $ Bool (x' == y')
-    (String x', String y') -> Right $ Bool (x' == y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `==` on " ++ show x ++ " and " ++ show y) m) m
+sub m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (b - a)) m'
+        (AFloat a, AFloat b) -> M.push (AFloat (b - a)) m'
+        (a, b) -> binopErr "-" a b m'
+    (Nothing, m') -> error "unreachable"
 
-gt :: Machine -> Machine
-gt m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' > y')
-    (Float x', Float y')   -> Right $ Bool (x' > y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `>` on " ++ show x ++ " and " ++ show y) m) m
+mul m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (a * b)) m'
+        (AFloat a, AFloat b) -> M.push (AFloat (a * b)) m'
+        (a, b) -> binopErr "*" a b m'
+    (Nothing, m') -> error "unreachable"
 
-lt :: Machine -> Machine
-lt m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' < y')
-    (Float x', Float y')   -> Right $ Bool (x' < y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `<` on " ++ show x ++ " and " ++ show y) m) m
+div m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (Prelude.div b a)) m'
+        (AFloat a, AFloat b) -> M.push (AFloat (b / a)) m'
+        (a, b) -> binopErr "/" a b m'
+    (Nothing, m') -> error "unreachable"
 
-ge :: Machine -> Machine
-ge m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' >= y')
-    (Float x', Float y')   -> Right $ Bool (x' >= y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `>=` on " ++ show x ++ " and " ++ show y) m) m
+mod m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (Prelude.mod b a)) m'
+        (a, b) -> binopErr "%" a b m'
+    (Nothing, m') -> error "unreachable"
 
-le :: Machine -> Machine
-le m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' <= y')
-    (Float x', Float y')   -> Right $ Bool (x' <= y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `<=` on " ++ show x ++ " and " ++ show y) m) m
+eq m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a == b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a == b)) m'
+        (ABool a, ABool b)     -> M.push (ABool (a == b)) m'
+        (AString a, AString b) -> M.push (ABool (a == b)) m'
+        (AList a, AList b)     -> M.push (ABool (a == b)) m'
+        (a, b) -> binopErr "=" a b m'
+    (Nothing, m') -> error "unreachable"
 
-ne :: Machine -> Machine
-ne m = M.apply2 (\x y -> case (x, y) of
-    (Int x', Int y')       -> Right $ Bool (x' /= y')
-    (Float x', Float y')   -> Right $ Bool (x' /= y')
-    (Bool x', Bool y')     -> Right $ Bool (x' /= y')
-    (String x', String y') -> Right $ Bool (x' /= y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `!=` on " ++ show x ++ " and " ++ show y) m) m
+gt m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a > b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a > b)) m'
+        (a, b) -> binopErr ">" a b m'
+    (Nothing, m') -> error "unreachable"
 
-or :: Machine -> Machine
-or m = M.apply2 (\x y -> case (x, y) of
-    (Bool x', Bool y')     -> Right $ Bool (x' || y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `|` on " ++ show x ++ " and " ++ show y) m) m
+lt m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a < b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a < b)) m'
+        (a, b) -> binopErr "<" a b m'
+    (Nothing, m') -> error "unreachable"
 
-and :: Machine -> Machine
-and m = M.apply2 (\x y -> case (x, y) of
-    (Bool x', Bool y')     -> Right $ Bool (x' && y')
-    (x, y)                 -> Left $ M.err ("Cannot perform `&` on " ++ show x ++ " and " ++ show y) m) m
+ge m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a >= b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a >= b)) m'
+        (a, b) -> binopErr ">=" a b m'
+    (Nothing, m') -> error "unreachable"
 
-not :: Machine -> Machine
-not m = M.apply (\case
-    Bool x' -> Right $ Bool (Prelude.not x')
-    x       -> Left $ M.err ("Cannot perform `!` on " ++ show x) m) m
+le m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a <= b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a <= b)) m'
+        (a, b) -> binopErr "<=" a b m'
+    (Nothing, m') -> error "unreachable"
 
-truth :: Machine -> (Maybe Bool, Machine)
-truth m = case M.pop m of
-    (Just x, m') -> case x of
-        Bool x' -> (Just x', m')
-        _ -> (Nothing, M.err "Invalid type for `truth`" m)
-    _ -> (Nothing, M.err "Invalid type for `truth`" m)
+ne m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)       -> M.push (ABool (a /= b)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (a /= b)) m'
+        (a, b) -> binopErr "!=" a b m'
+    (Nothing, m') -> error "unreachable"
 
-r = return
+or m = case check2 m of
+    (Just r, m') -> case r of
+        (ABool a, ABool b) -> M.push (ABool (a || b)) m'
+        (a, b) -> binopErr "or" a b m'
+    (Nothing, m') -> error "unreachable"
+
+and m = case check2 m of
+    (Just r, m') -> case r of
+        (ABool a, ABool b) -> M.push (ABool (a && b)) m'
+        (a, b) -> binopErr "and" a b m'
+    (Nothing, m') -> error "unreachable"
+
+not m = case check m of
+    (Just r, m') -> case r of
+        (ABool a) -> M.push (ABool (Prelude.not a)) m'
+        a -> unaopErr "not" a m'
+    (Nothing, m') -> error "unreachable"
 
 evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
-    Push lv -> r $ M.push (val lv) m
-    Call s -> do
-        let f = M.getFunc (val s) m
+    Push lv -> return $ M.push (value lv) m
+    Call s  -> do
+        let f = M.getFunc (value s) m
         case f of
             Just body -> evalExprs body m
             Nothing   -> do
-                let mv = M.get (val s) m
+                let mv = M.get (value s) m
                 case mv of
-                    Nothing -> r $ M.err ("Function not found: " ++ val s) m
-                    Just va -> r $ M.push va m
-    Intr s -> case val s of
-        "+"  -> r $ add m
-        "-"  -> r $ sub m
-        "*"  -> r $ mul m
-        "/"  -> r $ Interpret.div m
-        "%"  -> r $ Interpret.mod m
-        "^"  -> r $ Interpret.exp m
-        "="  -> r $ eq m
-        ">"  -> r $ gt m
-        "<"  -> r $ lt m
-        ">=" -> r $ ge m
-        "<=" -> r $ le m
-        "!=" -> r $ ne m
-        "||" -> r $ Interpret.or m
-        "&&" -> r $ Interpret.and m
-        "!"  -> r $ Interpret.not m
-        "?"  -> do
-            print $ stack m
-            return m
-        "dup"    -> r $ M.apply (\x -> Left $ m { stack = x : stack m }) m
-        "drop"   -> r $ M.drop 1 m
-        "swap"   -> r $ M.apply2 (\x y -> Left $ m { stack = y : x : stack (M.drop 2 m) }) m
-        "over"   -> r $ M.apply2 (\x y -> Left $ m { stack = x : y : x : stack (M.drop 2 m) }) m
-        "rot"    -> r $ M.apply3 (\x y z -> Left $ m { stack = z : x : y : stack (M.drop 3 m) }) m
-        "puts"   -> r $ M.apply (\x -> Left $ M.out (display x) (M.drop 1 m)) m
-        "putsln" -> r $ M.apply (\x -> Left $ M.out (display x ++ "\n") (M.drop 1 m)) m
-        "gets"   -> getLine >>= \x -> r $ M.push (String x) m
-        "flush"  -> M.putBuf m
-        "void"   -> r m
+                    Nothing -> return $ M.err ("Function not found: " ++ value s) m
+                    Just va -> return $ M.push va m
+    Intr s -> case value s of
+        "+"  -> return $ add m
+        "-"  -> return $ sub m
+        "*"  -> return $ mul m
+        "/"  -> return $ Interpret.div m
+        "%"  -> return $ Interpret.mod m
+        "="  -> return $ eq m
+        ">"  -> return $ gt m
+        "<"  -> return $ lt m
+        ">=" -> return $ ge m
+        "<=" -> return $ le m
+        "!=" -> return $ ne m
+        "||" -> return $ Interpret.or m
+        "&&" -> return $ Interpret.and m
+        "!"  -> return $ Interpret.not m
+        "dup"-> do
+            let checked = M.require 1 m
+            if fault checked then return checked else do
+                let (a, m') = M.popUnsafe checked
+                return $ M.push a (M.push a m')
+        "drop" -> do
+            let checked = M.require 1 m
+            if fault checked then return checked else do
+                let (_, m') = M.popUnsafe checked
+                return m'
+        "swap" -> do
+            let checked = M.require 2 m
+            if fault checked then return checked else do
+                let (a, m')  = M.popUnsafe checked
+                let (b, m'') = M.popUnsafe m'
+                return $ M.push b (M.push a m'')
+        "over" -> do
+            let checked = M.require 2 m
+            if fault checked then return checked else do
+                let (a, m')  = M.popUnsafe checked
+                let (b, m'') = M.popUnsafe m'
+                return $ M.push b (M.push a (M.push b m''))
+        "rot" -> do
+            let checked = M.require 3 m
+            if fault checked then return checked else do
+                let (a, m')   = M.popUnsafe checked
+                let (b, m'')  = M.popUnsafe m'
+                let (c, m''') = M.popUnsafe m''
+                return $ M.push b (M.push c (M.push a m'''))
+        "puts" -> do
+            let checked = M.require 1 m
+            if fault checked then return checked else do
+                let (a, m') = M.popUnsafe checked
+                return $ M.put (printAtom a) m'
+        "putsln" -> do
+            let checked = M.require 1 m
+            if fault checked then return checked else do
+                let (a, m') = M.popUnsafe checked
+                return $ M.put (printAtom a ++ "\n") m'
+        "gets"   -> getLine >>= \x -> return $ M.push (AString x) m
+        "flush"  -> M.mFlush m
         -- Probably will never happen because
         -- parser should've caught it
         _ -> error "unreachable"
     If t f -> do
         let (b, m') = truth m
-        if b == Just True
-        then evalExprs (map val t) m'
-        else evalExprs (map val f) m'
+        if b == Just True then evalExprs t m' else evalExprs f m'
+        where truth m = case check m of
+                (Just r, m') -> case r of
+                    (ABool a) -> (Just a, m')
+                    a -> (Nothing, M.err ("Expected boolean, got " ++ show a) m')
+                (Nothing, m') -> (Nothing, m')
     Try t o -> do
-        let iom = evalExprs (map val t) m
-        iom >>= \m' -> if fault m'
-            then evalExprs (map val o) m
-            else return m'
+        let iom = evalExprs t m
+        iom >>= \m' -> if fault m' then evalExprs o m else return m'
     Take vs body -> do
         let len = length vs
         if len > length (stack m) then
-            r $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
+            return $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
         else do
             let elems = reverse $ take len (stack m)
-            let m' = M.bindl (zip (map val vs) elems) (M.drop len m)
-            evalExprs (map val body) m'
+            let m' = M.bindl (zip vs elems) (M.dropUnsafe len m)
+            evalExprs body m'
     Peek vs body -> do
         let len = length vs
         if len > length (stack m) then
-            r $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
+            return $ M.err ("Not enough element on the stack (have " ++ show (length (stack m)) ++ " but need " ++ show len ++ ")") m
         else do
             let elems = reverse $ take len (stack m)
-            let m' = M.bindl (zip (map val vs) elems) m
-            evalExprs (map val body) m'
+            let m' = M.bindl (zip vs elems) m
+            evalExprs body m'
 
 evalExprs :: [Expr] -> Machine -> IO Machine
 evalExprs [] m = return m
@@ -184,11 +230,11 @@ evalExprs (e:es) m = do
 
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
-    Entry body -> evalExprs (map val body) m
-    Func name _ _ body -> r $ M.bindFunc name (map val body) m
+    Entry body -> evalExprs body m
+    Func name _ _ body -> return $ M.bindFunc name body m
 
 evalProgram :: Program -> Machine -> IO Machine
 evalProgram [] m = return m
 evalProgram (s:ss) m = do
-    m' <- evalStmt (val s) m
+    m' <- evalStmt (value s) m
     if fault m' then return m' else evalProgram ss m'

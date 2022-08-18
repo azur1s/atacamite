@@ -1,0 +1,38 @@
+cabal-version:      2.4
+name:               atacamite
+version:            0.1.0.0
+synopsis:           A statically typed, stack-based programming language
+
+-- A longer description of the package.
+-- description:
+homepage:           https://github.com/azur1s/atacamite
+
+-- A URL where users can report bugs.
+bug-reports:        https://github.com/azur1s/atacamite/issues
+license:            MIT
+license-file:       LICENSE
+author:             azur1s
+maintainer:         natapat.samutpong@gmail.com
+
+-- A copyright notice.
+-- copyright:
+-- category:
+-- extra-source-files: CHANGELOG.md
+
+executable atacamite
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:    Parse,
+                      Machine,
+                      Interpret
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base ^>=4.14.3.0,
+                      text,
+                      megaparsec,
+                      containers,
+                      Stack
+    hs-source-dirs:   src
+    default-language: Haskell2010

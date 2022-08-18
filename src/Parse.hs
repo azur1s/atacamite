@@ -1,217 +1,232 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Parse where
 
-import Control.Monad (void)
-import qualified Text.Parsec        as P
-import qualified Text.Parsec.String as P
+import Data.Functor (($>))
+import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
-import Types
+import Data.Text (Text, pack, unpack)
+import Data.Void (Void)
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
 
-ws :: P.Parser ()
-ws = void (P.oneOf " \t\r\n")
+data Locatable a = Locatable { location :: (String, Int, Int), value :: a }
+    deriving (Show)
 
-comment :: P.Parser ()
-comment = void (P.char ';' >> P.skipMany (P.noneOf "\r\n") >> P.char '\n' P.<?> "comment")
+convSP :: SourcePos -> (String, Int, Int)
+convSP (SourcePos f l c) = (f, unPos l, unPos c)
 
-noise :: P.Parser ()
-noise = P.skipMany (ws P.<|> comment)
+data Atom
+    = AInt    Int
+    | AFloat  Float
+    | ABool   Bool
+    | AString String
+    | AList   [Atom]
+    deriving (Show, Eq)
 
-identifier :: P.Parser String
-identifier = do
-    c <- P.letter P.<|> P.oneOf chars
-    cs <- P.optionMaybe (P.many (P.letter P.<|> P.oneOf "+-*/%^=<>!|&?_." P.<|> P.digit))
-    return $ c : fromMaybe "" cs
+printAtom :: Atom -> String
+printAtom a = case a of
+    AInt i    -> show i
+    AFloat f  -> show f
+    ABool b   -> show b
+    AString s -> s
+    AList l   -> "[" ++ intercalate ", " (map printAtom l) ++ "]"
+
+data Expr
+    = Push (Locatable Atom)
+    | Call (Locatable String)
+    | Intr (Locatable String)
+    | If   Body Body
+    | Try  Body Body
+    | Take [String] Body
+    | Peek [String] Body
+    deriving (Show)
+
+type Body = [Expr]
+
+data Hint
+    = HInt
+    | HFloat
+    | HBool
+    | HString
+    | HList Hint
+    deriving (Show)
+
+data Stmt
+    = Func  String [Locatable Hint] [Locatable Hint] Body
+    | Entry Body
+    deriving (Show)
+
+type Program = [Locatable Stmt]
+
+type Parser = Parsec Void Text
+
+-- Space consumer
+sc :: Parser ()
+sc = L.space
+    space1
+    (L.skipLineComment ";;")
+    (L.skipBlockComment ";*" "*;")
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme sc
+
+symbol :: Text -> Parser Text
+symbol = L.symbol sc
+
+int :: Parser Int
+int = lexeme L.decimal
+
+float :: Parser Float
+float = lexeme L.float
+
+stringl :: Parser String
+stringl = lexeme (char '\"' *> manyTill L.charLiteral (char '\"'))
+
+keyword :: Text -> Parser Text
+keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
+
+ident :: Parser String
+ident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
     where
-        chars = "_+-*/%^=<>!|&?_~@."
+        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?:"
+        rest = first ++ ['0'..'9'] ++ "'"
 
-identifier' :: P.Parser (Locatable String)
-identifier' = do
-    s <- P.getPosition
-    i <- identifier
-    e <- P.getPosition
-    return $ Locatable i (s, e)
+-- | Atoms
 
-reserved :: [String]
-reserved =
-    [ "+", "-", "*", "/", "%", "^"
+aInt :: Parser Atom
+aInt = AInt <$> int
+
+aFloat :: Parser Atom
+aFloat = AFloat <$> float
+
+aBool :: Parser Atom
+aBool = ABool <$> (keyword "true" $> True <|> keyword "false" $> False)
+
+aString :: Parser Atom
+aString = AString <$> stringl
+
+aList :: Parser Atom
+aList = AList <$> between
+    (symbol "[") (symbol "]") (sepBy (aInt <|> aFloat <|> aBool <|> aString <|> aList) (symbol ","))
+
+atom :: Parser (Locatable Atom)
+atom = do
+    s <- getSourcePos
+    Locatable (convSP s) <$> (aInt <|> aFloat <|> aBool <|> aString <|> aList)
+
+atoms :: Parser [Locatable Atom]
+atoms = some atom
+
+parseAtoms :: String -> String -> Either (ParseErrorBundle Text Void) [Locatable Atom]
+parseAtoms path source = parse (atoms <* eof <?> "atoms") path (pack source)
+
+-- | Expressions
+
+push :: Parser Expr
+push = Push <$> atom
+
+intrList :: [String]
+intrList = [ "+", "-", "*", "/", "%"
     , "=", "<", ">", "<=", ">=", "!="
-    , "|", "&", "!"
+    , "||", "&&", "!"
     , "?"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush"
-    , "void"
     ]
 
-builtinType :: [String]
-builtinType = [ "int", "float", "bool", "string", "unit" ]
-
--- | Values
-
-int :: P.Parser (Locatable Value)
-int = do
-    start <- P.getPosition
-    n <- P.many1 P.digit
-    end <- P.getPosition
-    return $ Locatable (Int (read n)) (start, end)
-
-float :: P.Parser (Locatable Value)
-float = do
-    start <- P.getPosition
-    n <- P.many1 P.digit
-    _ <- P.char '.'
-    d <- P.many1 P.digit
-    end <- P.getPosition
-    return $ Locatable (Float (read (n ++ "." ++ d))) (start, end)
-
-bool :: P.Parser (Locatable Value)
-bool = do
-    start <- P.getPosition
-    _ <- P.char '#'
-    b <- P.string "true" P.<|> P.string "false"
-    end <- P.getPosition
-    return $ Locatable (Bool (b == "true")) (start, end)
-
-string :: P.Parser (Locatable Value)
-string = do
-    start <- P.getPosition
-    s <- P.between (P.char '"') (P.char '"') (P.many $ P.noneOf "\"" P.<|> P.try (P.string "\"\"" >> return '"'))
-    end <- P.getPosition
-    return $ Locatable (String s) (start, end)
-
-array :: P.Parser (Locatable Value)
-array = do
-    start <- P.getPosition
-    _ <- P.char '[' >> noise
-    e <- P.sepBy (P.choice [int, float, bool, string]) (noise >> P.char ',' >> noise)
-    _ <- P.char ']' >> noise
-    end <- P.getPosition
-    return $ Locatable (Array e) (start, end)
-
--- | Expressions
-
-push :: P.Parser (Locatable Expr)
-push = do
-    start <- P.getPosition
-    v <- P.choice [int, float, bool, string, array]
-    end <- P.getPosition
-    return $ Locatable (Push v) (start, end)
-
-callintr :: P.Parser (Locatable Expr)
+callintr :: Parser Expr
 callintr = do
-    start <- P.getPosition
-    c <- identifier
-    end <- P.getPosition
-    if c `elem` reserved
-        then return $ Locatable (Intr (Locatable c (start, end))) (start, end)
-        else return $ Locatable (Call (Locatable c (start, end))) (start, end)
+    s <- getSourcePos
+    i <- ident
+    if i `elem` intrList
+        then return $ Intr $ Locatable (convSP s) i
+        else return $ Call $ Locatable (convSP s) i
 
-ifelse :: P.Parser (Locatable Expr)
-ifelse = do
-    start <- P.getPosition
-    _ <- P.string "if" >> noise >> P.string "{" >> noise
-    t <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise >> P.string "else" >> noise >> P.string "{" >> noise
-    f <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (If t f) (start, end)
+ifelse :: Parser Expr
+ifelse = If <$> (keyword "if" *> symbol "{" *> exprs)
+    <*> ( symbol "}" *> keyword "else" *> symbol "{" *> exprs <* symbol "}") <?> "if block"
 
-try :: P.Parser (Locatable Expr)
-try = do
-    start <- P.getPosition
-    _ <- P.string "try" >> noise >> P.string "{" >> noise
-    t <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise >> P.string "otherwise" >> noise >> P.string "{" >> noise
-    o <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (Try t o) (start, end)
+tryelse :: Parser Expr
+tryelse = Try <$> (keyword "try" *> symbol "{" *> exprs)
+    <*> ( symbol "}" *> keyword "else" *> symbol "{" *> exprs <* symbol "}") <?> "try block"
 
-grab :: P.Parser (Locatable Expr)
-grab = do
-    start <- P.getPosition
-    _ <- P.string "@" >> noise
-    b <- P.many1 (noise *> identifier' <* noise)
-    _ <- noise >> P.string "{" >> noise
-    e <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (Take b e) (start, end) 
+takeblk :: Parser Expr
+takeblk = Take <$> (keyword "take" *> some ident)
+    <*> (symbol "{" *> exprs <* symbol "}") <?> "take block"
 
-peek :: P.Parser (Locatable Expr)
-peek = do
-    start <- P.getPosition
-    _ <- P.string "~" >> noise
-    b <- P.many1 (noise *> identifier' <* noise)
-    _ <- noise >> P.string "{" >> noise
-    e <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (Peek b e) (start, end)
+peekblk :: Parser Expr
+peekblk = Peek <$> (keyword "peek" *> some ident)
+    <*> (symbol "{" *> exprs <* symbol "}") <?> "peek block"
 
-expr :: P.Parser (Locatable Expr)
-expr = P.choice [ifelse, grab, peek, try, push, callintr] P.<?> "expression"
+expr :: Parser Expr
+expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> push <|> callintr <?> "expression"
 
--- | Typehints
+exprs :: Parser Body
+exprs = many expr <?> "body"
 
-builtin :: P.Parser (Locatable Typehint)
-builtin = do
-    start <- P.getPosition
-    c <- identifier
-    end <- P.getPosition
-    if c `elem` builtinType
-    then do
-        let b = case c of
-                "unit"   -> Builtin BUnit
-                "int"    -> Builtin BInt
-                "float"  -> Builtin BFloat
-                "bool"   -> Builtin BBool
-                "string" -> Builtin BString
-                _ -> error "unreachable"
-        return $ Locatable b (start, end)
-    else P.unexpected ("builtin type `" ++ c ++ "`")
+expr' :: Parser (Locatable Expr)
+expr' = do
+    s <- getSourcePos
+    Locatable (convSP s) <$> (ifelse <|> tryelse <|> takeblk <|> peekblk <|> callintr <|> push <?> "expression")
 
-tyarray :: P.Parser (Locatable Typehint)
-tyarray = do
-    start <- P.getPosition
-    _ <- P.char '[' >> noise
-    t <- typehint
-    _ <- noise >> P.char ']' >> noise
-    end <- P.getPosition
-    return $ Locatable (TyArray t) (start, end)
+exprs' :: Parser [Locatable Expr]
+exprs' = some expr' <?> "body"
 
-typehint :: P.Parser (Locatable Typehint)
-typehint = P.choice [builtin, tyarray] P.<?> "typehint"
+parseExprs :: String -> String -> Either (ParseErrorBundle Text Void) [Locatable Expr]
+parseExprs path source = parse (exprs' <* eof <?> "expression") path (pack source)
+
+-- | Hint
+
+hint :: Parser Hint
+hint = 
+    HInt     <$ keyword "int"
+    <|> HFloat  <$ keyword "float"
+    <|> HBool   <$ keyword "bool"
+    <|> HString <$ keyword "string"
+    <|> HList   <$> (symbol "[" *> hint <* symbol "]")
+    <?> "typehint"
+
+hint' :: Parser (Locatable Hint)
+hint' = do
+    s <- getSourcePos
+    Locatable (convSP s) <$> (
+        HInt        <$ keyword "int"
+        <|> HFloat  <$ keyword "float"
+        <|> HBool   <$ keyword "bool"
+        <|> HString <$ keyword "string"
+        <|> HList   <$> (symbol "[" *> hint <* symbol "]")
+        <?> "typehint")
+
+hints' :: Parser [Locatable Hint]
+hints' = many hint' <?> "typehints"
 
 -- | Statements
 
-func :: P.Parser (Locatable Stmt)
+func :: Parser Stmt
+-- func name a b c , d e f { .. }
 func = do
-    start <- P.getPosition
-    _ <- P.string "func" >> noise
-    name <- identifier
-    _ <- noise >> P.string "(" >> noise
-    tys <- P.sepBy (noise *> typehint <* noise) noise
-    _ <- noise >> P.string "--" >> noise
-    ret <- P.sepBy (noise *> typehint <* noise) noise
-    _ <- noise >> P.string ")" >> noise >> P.string "{" >> noise
-    body <- P.many1 (noise *> expr <* noise)
-    _ <- noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (Func name tys ret body) (start, end)
+    id <- keyword "func" *> ident
+    args <- hints'
+    rets <- optional (keyword "--" *> hints')
+    body <- symbol "{" *> exprs <* symbol "}"
+    return $ Func id args (fromMaybe [] rets) body
 
-entry :: P.Parser (Locatable Stmt)
-entry = do
-    start <- P.getPosition
-    P.string "entry" >> noise >> P.string "{" >> noise
-    body <- P.many1 (noise *> expr <* noise)
-    noise >> P.string "}" >> noise
-    end <- P.getPosition
-    return $ Locatable (Entry body) (start, end)
+entry :: Parser Stmt
+entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"
 
-program :: P.Parser Program
-program = do
-    P.many1 (noise *> P.choice [func, entry] <* noise) <* noise <* P.eof P.<?> "program"
+stmt :: Parser Stmt
+stmt = func <|> entry <?> "statement"
 
-parseProgram :: String -> String -> Either P.ParseError Program
-parseProgram = P.parse program
+stmt' :: Parser (Locatable Stmt)
+stmt' = do
+    s <- getSourcePos
+    Locatable (convSP s) <$> (func <|> entry <?> "statement")
+
+stmts' :: Parser Program
+stmts' = some stmt' <?> "statements"
+
+parseProgram :: String -> String -> Either (ParseErrorBundle Text Void) Program
+parseProgram path source = parse (stmts' <* eof <?> "statements") path (pack source)

@@ -1,9 +1,9 @@
 module Main where
 
 import Parse (parseProgram)
-import Types (fmtProgram)
-import Machine (initMachine, Machine (output))
+import Machine (initM, Machine(..))
 import Interpret (evalProgram)
+import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 
 version :: String
@@ -19,7 +19,7 @@ main = do
                 Left err -> putStrLn $ "Parse error " ++ show err
                 Right prog -> do
                     -- putStrLn $ fmtProgram prog
-                    let m = initMachine
+                    let m = initM
                     let m' = evalProgram prog m
                     m' >>= \x -> putStr $ concat $ reverse $ output x
         _ -> putStrLn version
