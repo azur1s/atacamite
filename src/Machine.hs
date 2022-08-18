@@ -1,5 +1,6 @@
 module Machine where
 
+import Control.Concurrent (threadDelay)
 import Data.Maybe (isNothing, fromJust)
 import Data.Map (Map)
 import Parse (Atom(..), Body)
@@ -37,6 +38,11 @@ mFlush m = do
     putStr $ concat $ reverse $ output m
     hFlush stdout
     return m { output = [] }
+
+mSleepms :: Int -> Machine -> IO Machine
+mSleepms n m = do
+    threadDelay (n * 1000) -- microseconds -> milliseconds
+    return m
 
 cmpStack :: Machine -> Machine -> Int -> Int
 cmpStack m1 m2 argc = do

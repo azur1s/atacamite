@@ -23,7 +23,7 @@ binopErr op a b = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a ++ " and 
 unaopErr :: [Char] -> Atom -> Machine -> Machine
 unaopErr op a = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a)
 
-add, sub, mul, div, mod :: Machine -> Machine
+add, sub, mul, div, mod, exp :: Machine -> Machine
 eq, gt, lt, ge, le, ne, or, and, not :: Machine -> Machine
 
 add m = case check2 m of
@@ -58,6 +58,13 @@ mod m = case check2 m of
     (Just r, m') -> case r of
         (AInt a, AInt b)     -> M.push (AInt (Prelude.mod b a)) m'
         (a, b) -> binopErr "%" a b m'
+    (Nothing, m') -> error "unreachable"
+
+exp m = case check2 m of
+    (Just r, m') -> case r of
+        (AInt a, AInt b)     -> M.push (AInt (b ^ a)) m'
+        (AFloat a, AFloat b) -> M.push (AFloat (b ** a)) m'
+        (a, b) -> binopErr "^" a b m'
     (Nothing, m') -> error "unreachable"
 
 eq m = case check2 m of
@@ -141,6 +148,7 @@ evalExpr e m = case e of
         "*"  -> return $ mul m
         "/"  -> return $ Interpret.div m
         "%"  -> return $ Interpret.mod m
+        "^"  -> return $ Interpret.exp m
         "="  -> return $ eq m
         ">"  -> return $ gt m
         "<"  -> return $ lt m
@@ -191,6 +199,15 @@ evalExpr e m = case e of
                 return $ M.put (printAtom a ++ "\n") m'
         "gets"   -> getLine >>= \x -> return $ M.push (AString x) m
         "flush"  -> M.mFlush m
+        "sleep"  -> do
+            let checked = M.require 1 m
+            if fault checked then return checked else do
+                let (a, m') = M.popUnsafe checked
+                case a of
+                    AInt n -> do
+                        mf <- M.mFlush m'
+                        M.mSleepms n mf
+                    _      -> return $ M.err ("Expected int for sleep, got " ++ show a) m
         -- Probably will never happen because
         -- parser should've caught it
         _ -> error "unreachable"

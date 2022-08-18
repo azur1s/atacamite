@@ -128,13 +128,13 @@ push :: Parser Expr
 push = Push <$> atom
 
 intrList :: [String]
-intrList = [ "+", "-", "*", "/", "%"
+intrList = [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "||", "&&", "!"
     , "?"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
-    , "gets", "flush"
+    , "gets", "flush", "sleep"
     ]
 
 callintr :: Parser Expr
