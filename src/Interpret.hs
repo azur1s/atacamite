@@ -152,7 +152,11 @@ evalExpr e m = case e of
         if b == Just True
         then evalExprs (map val t) m'
         else evalExprs (map val f) m'
-    Try t o -> undefined
+    Try t o -> do
+        let iom = evalExprs (map val t) m
+        iom >>= \m' -> if fault m'
+            then evalExprs (map val o) m
+            else return m'
 
 evalExprs :: [Expr] -> Machine -> IO Machine
 evalExprs [] m = return m
