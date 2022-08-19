@@ -1,5 +1,5 @@
-import import2 as import2
+import import2
 
 entry {
-    "Hello " puts import2::print_world
+    "Hello " puts print_world
 }

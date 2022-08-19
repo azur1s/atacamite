@@ -1,4 +1,4 @@
-import #strings as str
+import #strings
 
 entry {
     "abc" !! dup putsln ;; string explode  -- "abc" -> ["a", "b", "c"]
@@ -13,5 +13,5 @@ entry {
 
     ;; `concat` in #strings library
     "abc" "def" !! swap !! : .. putsln
-    "abc" "def" str::concat putsln
+    "abc" "def" concat putsln
 }

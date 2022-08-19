@@ -1,7 +1,7 @@
-import #prelude as prelude
+import #prelude
 
 func strlen String -- Int {
-    !! prelude::len
+    !! len
 }
 
 func concat String String -- String {

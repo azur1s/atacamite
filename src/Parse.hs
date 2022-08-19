@@ -58,7 +58,7 @@ data Hint
 data Stmt
     = Func  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
-    | Import String (Maybe String)
+    | Import String
     deriving (Show)
 
 type Program = [Locatable Stmt]
@@ -230,7 +230,7 @@ entry :: Parser Stmt
 entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"
 
 importf :: Parser Stmt
-importf = Import <$> (keyword "import" *> ident) <*> optional (keyword "as" *> ident) <?> "import"
+importf = Import <$> (keyword "import" *> ident) <?> "import"
 
 stmt :: Parser Stmt
 stmt = func <|> entry <|> importf <?> "statement"
