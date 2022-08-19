@@ -197,12 +197,12 @@ evalExpr e m = case e of
                 -- Constant
                 let cnst = M.getConst (value s) m
                 case cnst of
-                    Just cb -> evalExprs cb m
+                    Just cv -> return $ M.push cv m
                     Nothing -> do
                         -- Binding
                         let bind = M.get (value s) m
                         case bind of
-                            Just b  -> return $ M.push  b m
+                            Just b  -> return $ M.push b m
                             Nothing -> return $ M.err ("A bind or a function not found: " ++ value s) m
     Intr s -> case value s of
         "+"  -> return $ add m
@@ -349,7 +349,7 @@ evalExprs (e:es) m = do
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
     Import _ -> return m
-    Const name e -> return $ M.bindConst name e m
+    Const name a -> return $ M.bindConst name (value a) m
     Func name _ _ body -> return $ M.bindFunc name body m
     Entry body -> evalExprs body m
 

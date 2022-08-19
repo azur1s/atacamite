@@ -57,7 +57,7 @@ data Hint
 
 data Stmt
     = Import String
-    | Const String Body
+    | Const String (Locatable Atom)
     | Func  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
     deriving (Show)
@@ -222,7 +222,7 @@ importf :: Parser Stmt
 importf = Import <$> (keyword "import" *> ident) <?> "import"
 
 consta :: Parser Stmt
-consta = Const <$> (keyword "const" *> ident) <*> (symbol "{" *> exprs <* symbol "}") <?> "constant"
+consta = Const <$> (keyword "const" *> ident) <*> atom <?> "constant"
 
 func :: Parser Stmt
 func = do

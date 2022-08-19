@@ -1,7 +1,3 @@
 entry {
-    try {
-        +
-    } else err {
-        err putsln
-    }
+    "\n" puts
 }
