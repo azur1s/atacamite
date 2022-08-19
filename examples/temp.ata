@@ -1,6 +1,7 @@
 import #prelude ;; len
+import #strings ;; strlen
 
 entry {
-    [1, 2, 3] len putsln
-    "abcd" *! len putsln
+    [1, 2, 3] len    putsln
+    "abcdefg" strlen putsln
 }

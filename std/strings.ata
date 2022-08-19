@@ -1,3 +1,5 @@
+import #prelude as prelude
+
 func strlen string -- int {
-    69 ;; todo
+    *! prelude::len
 }
