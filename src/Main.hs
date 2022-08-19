@@ -7,9 +7,9 @@ import Data.Void (Void)
 import Interpret (evalProgram)
 import Machine (initM, Machine(..))
 import Parse (parseProgram, Program, Stmt(Import, Func), Locatable (..))
-import System.Directory (canonicalizePath, getCurrentDirectory, setCurrentDirectory)
+import System.Directory (canonicalizePath, getCurrentDirectory, setCurrentDirectory, getHomeDirectory)
 import System.Environment (getArgs)
-import System.FilePath (takeDirectory)
+import System.FilePath (takeDirectory, (</>))
 import System.IO (hFlush, stdout)
 import Text.Megaparsec.Error (ParseErrorBundle)
 
@@ -35,8 +35,14 @@ parseFile path = do
         Right p -> do
             let imports = getImports p
             let (paths, bindName) = unzip imports
-            paths' <- mapM canonicalizePath paths
-            progs' <- mapM parseFile paths'
+
+            let coreList = map tail (filter (\p -> head p `elem` "#") paths)
+            home <- getHomeDirectory
+            let coreFull = map (\c -> home </> ".atacamite" </> c) coreList
+            let paths' = coreFull ++ filter (\p -> head p `notElem` "#") paths
+
+            fullPaths <- mapM canonicalizePath paths'
+            progs' <- mapM parseFile fullPaths
             let errs = filter isLeft progs'
             if null errs then do
                 let ps = map (\(Right p) -> p) (filter isRight progs')
