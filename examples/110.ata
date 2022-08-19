@@ -1,6 +1,9 @@
 import #prelude
 
 const starting-tape [
+  0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 ]
 
@@ -21,7 +24,7 @@ func nextTape [Int] -- [Int] {
   take tape' len' {
     0 while dup len' < {
       ;; get index
-      dup 1 - dup 0 < if { drop 0 } else { } -> a 
+      dup 1 - dup 0 < if { drop len' 1 - } else { } -> a 
       dup -> b
       dup 1 + dup len' 1 - > if { drop 0 } else { } -> c
 

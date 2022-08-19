@@ -37,7 +37,7 @@ func nextTape [Int] -- [Int] {
             1 - ;; [i* i]
             dup ;; [i* i* i]
             0 < ;; [bool i]
-            if { drop 0 } else { } ;; [i* i]
+            if { drop len' 1 - } else { } ;; [i* i]
             -> a ;; [i], pop i* -> a
 
             dup  ;; [i* i]
