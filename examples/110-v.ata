@@ -1,0 +1,100 @@
+import #prelude
+
+const starting-tape [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+]
+
+func fmtTape [Int] {
+    ;; [tape]
+    dup ;; [tape tape]
+    len ;; [i tape]
+    take tape' len' { ;; pop i -> len', pop tape -> tape'
+        0 while dup len' < {
+            ;; [i]
+            tape' ;; [tape i]
+            swap  ;; [i tape]
+            dup   ;; [i i tape]
+            rot   ;; [i tape i]
+            @     ;; [idx i]
+            1 =   ;; [bool i]
+            if { "█" } else { " " } ;; [string i]
+            puts  ;; [i]
+            1 +   ;; [i]
+        } drop
+    }
+}
+
+func nextTape [Int] -- [Int] {
+    dup len
+    [] -> result
+    take tape' len' {
+        0 while dup len' < {
+            dup      ;; [i i]
+            len' 1 - ;; [len i i]
+            =        ;; [bool i]
+            if {
+                [1]       ;; [[1] i]
+                :: result ;; [[r..] [1] i]
+                //        ;; [[1 : r] i]
+                -> result ;; [i], pop [1 : r] -> result
+            } else {
+                ;; [i]
+                dup ;; [i* i]
+                1 - ;; [i* i]
+                dup ;; [i* i* i]
+                0 < ;; [bool i]
+                if { drop 0 } else { } ;; [i* i]
+                -> a ;; [i], pop i* -> a
+
+                dup  ;; [i* i]
+                -> b ;; [i], pop i* -> b
+
+                dup   ;; [i* i]
+                1 +   ;; [i* i]
+                dup   ;; [i* i* i]
+                len'  ;; [len i* i* i]
+                1 - > ;; [bool i* i]
+                if { drop len' 1 - } else { } ;; [i* i]
+                -> c ;; [i], pop i* -> c
+                tape' :: c @ ;; [c i]
+                tape' :: b @ ;; [b c i]
+                tape' :: a @ ;; [a b c i]
+                3 .* ;; [[a b c] i]
+                2 -> r
+                dup [1, 1, 1] = if { 0 -> r } else { }
+                dup [1, 1, 0] = if { 1 -> r } else { }
+                dup [1, 0, 1] = if { 1 -> r } else { }
+                dup [1, 0, 0] = if { 0 -> r } else { }
+                dup [0, 1, 1] = if { 1 -> r } else { }
+                dup [0, 1, 0] = if { 1 -> r } else { }
+                dup [0, 0, 1] = if { 1 -> r } else { }
+                dup [0, 0, 0] = if { 0 -> r } else { }
+                drop
+                :: r
+                ;; [i* i]
+                dup 1 > if { drop 0 } else { } ;; clamp
+                1 .* ;; [[i*] i]
+                :: result ;; [[r..] [i*] i]
+                // ;; [[i* : r ] i]
+                -> result ;; [i], pop [i* : r] -> resulta
+            }
+            1 +
+        } drop
+    }
+    :: result
+}
+
+entry {
+    starting-tape -> tape
+    :: tape len   -> amount
+    :: tape fmtTape
+    0 while dup :: amount < {
+        "" putsln
+        :: tape nextTape -> tape
+        :: tape fmtTape
+        1 +
+    }
+}
