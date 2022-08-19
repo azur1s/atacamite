@@ -62,7 +62,7 @@ data Hint
 data Stmt
     = Import String
     | Const String (Locatable Atom)
-    | Func  String [Locatable Hint] [Locatable Hint] Body
+    | Fun  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
     deriving (Show)
 
@@ -228,24 +228,24 @@ importf = Import <$> (keyword "import" *> ident) <?> "import"
 consta :: Parser Stmt
 consta = Const <$> (keyword "const" *> ident) <*> atom <?> "constant"
 
-func :: Parser Stmt
-func = do
-    name <- keyword "func" *> ident
+fun :: Parser Stmt
+fun = do
+    name <- keyword "fun" *> ident
     args <- hints'
     rets <- optional (keyword "--" *> hints')
     body <- symbol "{" *> exprs <* symbol "}"
-    return $ Func name args (fromMaybe [] rets) body
+    return $ Fun name args (fromMaybe [] rets) body
 
 entry :: Parser Stmt
 entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"
 
 stmt :: Parser Stmt
-stmt = func <|> entry <|> importf <?> "statement"
+stmt = fun <|> entry <|> importf <?> "statement"
 
 stmt' :: Parser (Locatable Stmt)
 stmt' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (consta <|> func <|> entry <|> importf <?> "statement")
+    Locatable (convSP s) <$> (consta <|> fun <|> entry <|> importf <?> "statement")
 
 stmts' :: Parser Program
 stmts' = many stmt' <?> "statements"

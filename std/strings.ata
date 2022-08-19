@@ -1,9 +1,9 @@
 import #prelude
 
-func strlen String -- Int {
+fun strlen String -- Int {
     !! len
 }
 
-func concat String String -- String {
+fun concat String String -- String {
     !! swap !! // ..
 }

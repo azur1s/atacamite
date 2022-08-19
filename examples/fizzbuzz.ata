@@ -1,4 +1,4 @@
-func sputs a -- { puts " " puts }
+fun sputs a -- { puts " " puts }
 
 entry {
     1 while dup 100 <= {

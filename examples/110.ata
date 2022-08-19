@@ -6,7 +6,7 @@ const starting-tape [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 ]
 
-func fmtTape [Int] {
+fun fmtTape [Int] {
   dup len
   take tape' len' {
     0 while dup len' < {
@@ -17,7 +17,7 @@ func fmtTape [Int] {
   }
 }
 
-func nextTape [Int] -- [Int] {
+fun nextTape [Int] -- [Int] {
   dup len
   [] store(result)
   take tape' len' {

@@ -1,3 +1,3 @@
-func print_world -- {
+fun print_world -- {
     "World!" puts
 }

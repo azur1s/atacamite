@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 data Machine = Machine
     { fault  :: Bool
     , stack  :: [Atom]
-    , funcs  :: Map String Body
+    , funs  :: Map String Body
     , consts :: Map String Atom
     , memory :: Map String Atom
     , binds  :: Map String Atom
@@ -21,7 +21,7 @@ initM :: Machine
 initM = Machine
     { fault  = False
     , stack  = []
-    , funcs  = Map.empty
+    , funs  = Map.empty
     , consts = Map.empty
     , memory = Map.empty
     , binds  = Map.empty
@@ -80,13 +80,13 @@ pop m = do
 size :: Machine -> Int
 size = length . stack
 
--- | Environment functions
+-- | Environment funtions
 
-bindFunc :: String -> Body -> Machine -> Machine
-bindFunc s body m = m { funcs = Map.insert s body (funcs m) }
+bindFun :: String -> Body -> Machine -> Machine
+bindFun s body m = m { funs = Map.insert s body (funs m) }
 
-getFunc :: String -> Machine -> Maybe Body
-getFunc s m = Map.lookup s (funcs m)
+getFun :: String -> Machine -> Maybe Body
+getFun s m = Map.lookup s (funs m)
 
 bindConst :: String -> Atom -> Machine -> Machine
 bindConst s body m = m { consts = Map.insert s body (consts m) }
