@@ -1,8 +1,7 @@
 import #prelude
 
 const starting-tape [
-  1, 0, 0, 1, 0, 1, 1, 0, 0, 1,
-  0, 0, 1, 0, 1, 0, 0, 1, 0, 1
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 1
 ]
 
 func fmtTape [Int] {
@@ -21,32 +20,28 @@ func nextTape [Int] -- [Int] {
   [] -> result
   take tape' len' {
     0 while dup len' < {
-      dup len' 1 - = if {
-        [1] :: result // -> result
-      } else {
-        ;; get index
-        dup 1 - dup 0 < if { drop 0 } else { } -> a 
-        dup -> b
-        dup 1 + dup len' 1 - > if { drop len' 1 - } else { } -> c
+      ;; get index
+      dup 1 - dup 0 < if { drop 0 } else { } -> a 
+      dup -> b
+      dup 1 + dup len' 1 - > if { drop 0 } else { } -> c
 
-        tape' :: c @ 
-        tape' :: b @
-        tape' :: a @
-        3 .*
-        2 -> r
-        dup [1, 1, 1] = if { 0 -> r } else { }
-        dup [1, 1, 0] = if { 1 -> r } else { }
-        dup [1, 0, 1] = if { 1 -> r } else { }
-        dup [1, 0, 0] = if { 0 -> r } else { }
-        dup [0, 1, 1] = if { 1 -> r } else { }
-        dup [0, 1, 0] = if { 1 -> r } else { }
-        dup [0, 0, 1] = if { 1 -> r } else { }
-        dup [0, 0, 0] = if { 0 -> r } else { }
-        drop :: r
-        dup 1 > if { drop 0 } else { } ;; clamp
-        1 .* :: result //
-        -> result
-      }
+      tape' :: c @ 
+      tape' :: b @
+      tape' :: a @
+      3 .*
+      2 -> r
+      dup [1, 1, 1] = if { 0 -> r } else { }
+      dup [1, 1, 0] = if { 1 -> r } else { }
+      dup [1, 0, 1] = if { 1 -> r } else { }
+      dup [1, 0, 0] = if { 0 -> r } else { }
+      dup [0, 1, 1] = if { 1 -> r } else { }
+      dup [0, 1, 0] = if { 1 -> r } else { }
+      dup [0, 0, 1] = if { 1 -> r } else { }
+      dup [0, 0, 0] = if { 0 -> r } else { }
+      drop :: r
+      dup 1 > if { drop 0 } else { } ;; clamp
+      1 .* :: result //
+      -> result
       1 +
     } drop
   }
