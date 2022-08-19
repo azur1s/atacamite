@@ -12,6 +12,7 @@ data Machine = Machine
     , funcs  :: Map String Body
     , binds  :: Map String Atom
     , output :: [String]
+    , errors :: [String]
     } deriving (Show)
 
 initM :: Machine
@@ -21,6 +22,7 @@ initM = Machine
     , funcs  = Map.empty
     , binds  = Map.empty
     , output = []
+    , errors = []
     }
 
 -- | IO operations
@@ -29,7 +31,7 @@ put :: String -> Machine -> Machine
 put s m = m { output = s : output m }
 
 err :: String -> Machine -> Machine
-err s m = m { output = ("Error: " ++ s) : output m
+err s m = m { errors = ("Error: " ++ s) : errors m
             , fault = True }
 
 mFlush :: Machine -> IO Machine

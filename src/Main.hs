@@ -9,6 +9,7 @@ import Parse (parseProgram, Program, Stmt(Import), Locatable (..))
 import System.Directory (canonicalizePath, setCurrentDirectory, getHomeDirectory)
 import System.Environment (getArgs)
 import System.FilePath (takeDirectory, (</>))
+import System.IO (hPutStrLn, stderr)
 import Text.Megaparsec.Error (ParseErrorBundle)
 
 getImports :: Program -> [String]
@@ -57,5 +58,7 @@ main = do
                 Right p -> do
                     let m = initM
                     let m' = evalProgram p m
-                    m' >>= \x -> putStr $ concat $ reverse $ output x
+                    m' >>= \x -> if fault x then
+                        hPutStrLn stderr . concat . reverse $ errors x
+                        else putStr . concat . reverse $ output x
         _ -> putStrLn version

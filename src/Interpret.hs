@@ -300,7 +300,7 @@ evalExpr e m = case e of
     Try t e o -> do
         let iom = evalExprs t m
         iom >>= \m' -> if fault m' then
-            evalExprs o (M.bind e (AString (head $ output m')) m)
+            evalExprs o (M.bind e (AString (head $ errors m')) m)
             >>= \m'' -> return $ M.unbind e m''
             else return m'
     Take vs body -> do
