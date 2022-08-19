@@ -4,12 +4,14 @@ module Parse where
 
 import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Foldable (toList)
 
 data Locatable a = Locatable { location :: (String, Int, Int), value :: a }
     deriving (Show)
@@ -96,7 +98,7 @@ keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
 ident :: Parser String
 ident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
     where
-        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?"
+        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?|"
         rest = first ++ ['0'..'9'] ++ "'"
 
 hident :: Parser String
@@ -250,3 +252,20 @@ stmts' = many stmt' <?> "statements"
 
 parseProgram :: String -> String -> Either (ParseErrorBundle Text Void) Program
 parseProgram path source = parse (sc *> stmts' <* eof <?> "statements") path (pack source)
+
+errorUnpack :: ParseErrorBundle Text Void -> NonEmpty (SourcePos, Text)
+errorUnpack peb = fmap (\(err, pos) -> (pos, pack . parseErrorTextPretty $ err)) . fst $
+    attachSourcePos errorOffset (bundleErrors peb) (bundlePosState peb)
+
+fmtErrors :: NonEmpty (SourcePos, Text) -> [String]
+fmtErrors = fmap 
+    (\(pos, msg) -> sourceName pos ++ ":"
+                ++ (s . sourceLine) pos ++ ":"
+                ++ (s . sourceColumn) pos ++ " "
+                ++ (unln . unpack) msg)
+    . toList
+    where
+        s = show . unPos
+        unln ""        = ""
+        unln ('\n':xs) = ',':' ':unln xs
+        unln (x:xs)    = x:unln xs

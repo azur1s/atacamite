@@ -35,7 +35,7 @@ put :: String -> Machine -> Machine
 put s m = m { output = s : output m }
 
 err :: String -> Machine -> Machine
-err s m = m { errors = ("Error: " ++ s) : errors m
+err s m = m { errors = ("\x1b[91mError:\x1b[0m " ++ s) : errors m
             , fault = True }
 
 mFlush :: Machine -> IO Machine
@@ -56,9 +56,9 @@ cmpStack m1 m2 argc = do
 
 -- | Stack operations
 
-require :: Int -> Machine -> Machine
-require n m = if size m < n
-    then err ("Stack underflow: " ++ show n ++ " required, " ++ show (size m) ++ " available") m
+require :: String -> Int -> Machine -> Machine
+require name n m = if size m < n
+    then err ("Stack underflow for `" ++ name ++ "`: " ++ show n ++ " required, " ++ show (size m) ++ " available") m
     else m
 
 push :: Atom -> Machine -> Machine
@@ -72,7 +72,7 @@ dropUnsafe len m = m { stack = drop len $ stack m }
 
 pop :: Machine -> (Maybe Atom, Machine)
 pop m = do
-    let m' = require 1 m
+    let m' = require "pop" 1 m
     if fault m then (Nothing, m') else do
         let (a, m'') = popUnsafe m'
         (Just a, m'')

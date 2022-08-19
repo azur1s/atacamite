@@ -1,12 +1,12 @@
-func head [a] -- a {
-    !. swap drop
-}
-
-func tail [a] -- [a] {
-    !. drop
-}
-
 entry {
-    [1, 2, 3] head putsln
-    [1, 2, 3] tail putsln
+    true 1 <
+
+    ;; dup 10 < swap dup 5 > swap rot ||
+    ;; case
+    ;;     [1 =] { "It's 1!" }
+    ;;     [2 =] { "It's 2! :)" }
+    ;;     [3 =] { "It's 3 :O"}
+    ;;     [3 <] [5 >] { "It's more than 3 but less than 5" }
+    ;;     [5 =] { "It's 5!!" }
+    ;;     default { "I don't know this number :(" }
 }

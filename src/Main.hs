@@ -5,12 +5,13 @@ import Data.Text (Text)
 import Data.Void (Void)
 import Interpret (evalProgram)
 import Machine (initM, Machine(..))
-import Parse (parseProgram, Program, Stmt(Import), Locatable (..))
+import Parse (parseProgram, fmtErrors, Program, Stmt(Import), Locatable (..), errorUnpack)
 import System.Directory (canonicalizePath, setCurrentDirectory, getHomeDirectory)
 import System.Environment (getArgs)
 import System.FilePath (takeDirectory, (</>))
 import System.IO (hPutStrLn, stderr)
 import Text.Megaparsec.Error (ParseErrorBundle)
+import System.Exit (exitWith, ExitCode(ExitFailure))
 
 getImports :: Program -> [String]
 getImports p =
@@ -54,11 +55,14 @@ main = do
         [path] -> do
             x <- parseFile path
             case x of
-                Left err -> putStrLn $ "Error: " ++ show err
+                Left err -> do
+                    hPutStrLn stderr . concatMap ("\x1b[91mParse error:\x1b[0m " ++) . fmtErrors . errorUnpack $ err
+                    exitWith (ExitFailure 1)
                 Right p -> do
                     let m = initM
                     let m' = evalProgram p m
-                    m' >>= \x -> if fault x then
-                        hPutStrLn stderr . concat . reverse $ errors x
+                    m' >>= \x -> if fault x then do
+                        hPutStrLn stderr . last $ errors x
+                        exitWith (ExitFailure 1)
                         else putStr . concat . reverse $ output x
         _ -> putStrLn version
