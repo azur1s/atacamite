@@ -1,5 +1,5 @@
 import #prelude as prelude
 
 func strlen string -- int {
-    *! prelude::len
+    !! prelude::len
 }

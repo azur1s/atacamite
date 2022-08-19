@@ -1,0 +1,20 @@
+func sputs a -- { puts " " puts }
+
+entry {
+    1 while dup 100 <= {
+        dup 15 % 0 = if {
+            "FizzBuzz" sputs
+        } else {
+            dup 3 % 0 = if {
+                "Fizz" sputs
+            } else {
+                dup 5 % 0 = if {
+                    "Buzz" sputs
+                } else {
+                    dup sputs
+                }
+            }
+        }
+        1 +
+    }
+}

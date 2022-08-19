@@ -37,10 +37,11 @@ data Expr
     = Push (Locatable Atom)
     | Call (Locatable String)
     | Intr (Locatable String)
-    | If   Body Body
-    | Try  Body Body
-    | Take [String] Body
-    | Peek [String] Body
+    | If    Body Body
+    | Try   Body Body
+    | Take  [String] Body
+    | Peek  [String] Body
+    | While Body Body
     deriving (Show)
 
 type Body = [Expr]
@@ -145,7 +146,8 @@ intrList :: [String]
 intrList = [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "||", "&&", "!"
-    , "?", "@", "**", "*!"
+    , "?"
+    , "@", "!.", "!!", ":", "id"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush", "sleep"
@@ -175,8 +177,12 @@ peekblk :: Parser Expr
 peekblk = Peek <$> (keyword "peek" *> some ident)
     <*> (symbol "{" *> exprs <* symbol "}") <?> "peek block"
 
+while :: Parser Expr
+while = While <$> (keyword "while" *> exprs)
+    <*> (symbol "{" *> exprs <* symbol "}") <?> "while block"
+
 expr :: Parser Expr
-expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> push <|> callintr <?> "expression"
+expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> callintr <?> "expression"
 
 exprs :: Parser Body
 exprs = many expr <?> "body"

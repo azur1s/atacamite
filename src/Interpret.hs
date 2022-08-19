@@ -25,7 +25,7 @@ unaopErr op a = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a)
 
 add, sub, mul, div, mod, exp :: Machine -> Machine
 eq, gt, lt, ge, le, ne, or, and, not :: Machine -> Machine
-index, headtail, explode :: Machine -> Machine
+index, headtail, explode, join :: Machine -> Machine
 
 add m = case check2 m of
     (Just r, m') -> case r of
@@ -81,29 +81,29 @@ eq m = case check2 m of
 
 gt m = case check2 m of
     (Just r, m') -> case r of
-        (AInt a, AInt b)       -> M.push (ABool (a > b)) m'
-        (AFloat a, AFloat b)   -> M.push (ABool (a > b)) m'
+        (AInt a, AInt b)       -> M.push (ABool (b > a)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (b > a)) m'
         (a, b) -> binopErr ">" a b m'
     (Nothing, m') -> m'
 
 lt m = case check2 m of
     (Just r, m') -> case r of
-        (AInt a, AInt b)       -> M.push (ABool (a < b)) m'
-        (AFloat a, AFloat b)   -> M.push (ABool (a < b)) m'
+        (AInt a, AInt b)       -> M.push (ABool (b < a)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (b < a)) m'
         (a, b) -> binopErr "<" a b m'
     (Nothing, m') -> m'
 
 ge m = case check2 m of
     (Just r, m') -> case r of
-        (AInt a, AInt b)       -> M.push (ABool (a >= b)) m'
-        (AFloat a, AFloat b)   -> M.push (ABool (a >= b)) m'
+        (AInt a, AInt b)       -> M.push (ABool (b >= a)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (b >= a)) m'
         (a, b) -> binopErr ">=" a b m'
     (Nothing, m') -> m'
 
 le m = case check2 m of
     (Just r, m') -> case r of
-        (AInt a, AInt b)       -> M.push (ABool (a <= b)) m'
-        (AFloat a, AFloat b)   -> M.push (ABool (a <= b)) m'
+        (AInt a, AInt b)       -> M.push (ABool (b <= a)) m'
+        (AFloat a, AFloat b)   -> M.push (ABool (b <= a)) m'
         (a, b) -> binopErr "<=" a b m'
     (Nothing, m') -> m'
 
@@ -156,6 +156,21 @@ explode m = case check m of
         a -> unaopErr "explode" a m'
     (Nothing, m') -> m'
 
+join m = case check2 m of
+    (Just r, m') -> case r of
+        (AList a, AList b)     -> M.push (AList (a ++ b)) m'
+        (AString a, AString b) -> M.push (AString (a ++ b)) m'
+        (a, b) -> binopErr "join" a b m'
+    (Nothing, m') -> m'
+
+idlist m = case check m of
+    (Just r, m') -> case r of
+        (AList a) -> case a of
+            [x] -> M.push x m'
+            _ -> M.err "id expects a list of length 1" m'
+        a -> unaopErr "idlist" a m'
+    (Nothing, m') -> m'
+
 evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
     Push lv -> return $ M.push (value lv) m
@@ -186,8 +201,10 @@ evalExpr e m = case e of
         "!"  -> return $ Interpret.not m
         "?"  -> return $ M.push (AString (show $ stack m)) m
         "@"  -> return $ index m
-        "**" -> return $ headtail m
-        "*!" -> return $ explode m
+        "!." -> return $ headtail m
+        "!!" -> return $ explode m
+        ":"  -> return $ join m
+        "id" -> return $ idlist m
         "dup"-> do
             let checked = M.require 1 m
             if fault checked then return checked else do
@@ -268,6 +285,19 @@ evalExpr e m = case e of
             let elems = reverse $ take len (stack m)
             let m' = M.bindl (zip vs elems) m
             evalExprs body m'
+    While cond body -> do
+        m' <- evalExprs cond m
+        let (b, m'') = truth m'
+        if b == Just True then do
+            m''' <- evalExprs body m''
+            evalExpr (While cond body) m'''
+        else if b == Just False then return m''
+        else return $ M.err ("Expected boolean, got " ++ show b) m''
+        where truth m = case check m of
+                (Just r, m') -> case r of
+                    (ABool a) -> (Just a, m')
+                    a -> (Nothing, M.err ("Expected boolean, got " ++ show a) m')
+                (Nothing, m') -> (Nothing, m')
 
 evalExprs :: [Expr] -> Machine -> IO Machine
 evalExprs [] m = return m

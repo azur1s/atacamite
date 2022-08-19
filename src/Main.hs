@@ -18,7 +18,9 @@ getImports p =
 inject :: Program -> Maybe String -> Program
 inject p name = map (\s -> do
     let loc = location s
-    case value s of Func n a r b -> Locatable loc (Func (f name ++ n) a r b); _ -> s) p
+    case value s of
+        Func n a r b -> Locatable loc (Func (f name ++ n) a r b)
+        _ -> s) p
     where f n = case n of Just n -> n ++ "::" ; Nothing -> ""
 
 -- TODO: check circular imports
