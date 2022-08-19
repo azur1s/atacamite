@@ -5,7 +5,7 @@ module Parse where
 import Data.Functor (($>))
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack)
 import Data.Void (Void)
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -215,11 +215,11 @@ hints' = many hint' <?> "typehints"
 func :: Parser Stmt
 -- func name a b c , d e f { .. }
 func = do
-    id <- keyword "func" *> ident'
+    name <- keyword "func" *> ident'
     args <- hints'
     rets <- optional (keyword "--" *> hints')
     body <- symbol "{" *> exprs <* symbol "}"
-    return $ Func id args (fromMaybe [] rets) body
+    return $ Func name args (fromMaybe [] rets) body
 
 entry :: Parser Stmt
 entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"

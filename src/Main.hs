@@ -1,16 +1,14 @@
 module Main where
 
 import Data.Either (isLeft, isRight)
-import Data.Maybe (isNothing, fromJust, fromMaybe)
 import Data.Text (Text)
 import Data.Void (Void)
 import Interpret (evalProgram)
 import Machine (initM, Machine(..))
 import Parse (parseProgram, Program, Stmt(Import, Func), Locatable (..))
-import System.Directory (canonicalizePath, getCurrentDirectory, setCurrentDirectory, getHomeDirectory)
+import System.Directory (canonicalizePath, setCurrentDirectory, getHomeDirectory)
 import System.Environment (getArgs)
 import System.FilePath (takeDirectory, (</>))
-import System.IO (hFlush, stdout)
 import Text.Megaparsec.Error (ParseErrorBundle)
 
 getImports :: Program -> [(String, Maybe String)]
@@ -21,7 +19,7 @@ inject :: Program -> Maybe String -> Program
 inject p name = map (\s -> do
     let loc = location s
     case value s of Func n a r b -> Locatable loc (Func (f name ++ n) a r b); _ -> s) p
-    where f name = case name of Just n -> n ++ "::" ; Nothing -> ""
+    where f n = case n of Just n -> n ++ "::" ; Nothing -> ""
 
 -- TODO: check circular imports
 parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) Program)
