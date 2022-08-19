@@ -1,0 +1,5 @@
+import import2 as import2
+
+entry {
+    "Hello " puts import2::print_world
+}

@@ -249,6 +249,7 @@ evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
     Entry body -> evalExprs body m
     Func name _ _ body -> return $ M.bindFunc name body m
+    Import _ _ -> return m
 
 evalProgram :: Program -> Machine -> IO Machine
 evalProgram [] m = return m

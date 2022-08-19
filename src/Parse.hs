@@ -56,6 +56,7 @@ data Hint
 data Stmt
     = Func  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
+    | Import String (Maybe String)
     deriving (Show)
 
 type Program = [Locatable Stmt]
@@ -217,16 +218,19 @@ func = do
 entry :: Parser Stmt
 entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"
 
+importf :: Parser Stmt
+importf = Import <$> (keyword "import" *> ident) <*> optional (keyword "as" *> ident) <?> "import"
+
 stmt :: Parser Stmt
-stmt = func <|> entry <?> "statement"
+stmt = func <|> entry <|> importf <?> "statement"
 
 stmt' :: Parser (Locatable Stmt)
 stmt' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (func <|> entry <?> "statement")
+    Locatable (convSP s) <$> (func <|> entry <|> importf <?> "statement")
 
 stmts' :: Parser Program
-stmts' = some stmt' <?> "statements"
+stmts' = many stmt' <?> "statements"
 
 parseProgram :: String -> String -> Either (ParseErrorBundle Text Void) Program
-parseProgram path source = parse (stmts' <* eof <?> "statements") path (pack source)
+parseProgram path source = parse (sc *> stmts' <* eof <?> "statements") path (pack source)
