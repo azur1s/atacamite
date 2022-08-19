@@ -195,7 +195,7 @@ evalExpr e m = case e of
             Nothing   -> do
                 let mv = M.get (value s) m
                 case mv of
-                    Nothing -> return $ M.err ("Function not found: " ++ value s) m
+                    Nothing -> return $ M.err ("A bind or a function not found: " ++ value s) m
                     Just va -> return $ M.push va m
     Intr s -> case value s of
         "+"  -> return $ add m
@@ -269,7 +269,7 @@ evalExpr e m = case e of
                     AInt n -> do
                         mf <- M.mFlush m'
                         M.mSleepms n mf
-                    _      -> return $ M.err ("Expected int for sleep, got " ++ show a) m
+                    _ -> return $ M.err ("Expected int for sleep, got " ++ show a) m
         -- Probably will never happen because
         -- parser should've caught it
         e -> error ("unreachable: " ++ e)
@@ -283,8 +283,9 @@ evalExpr e m = case e of
                 (Nothing, m') -> (Nothing, m')
     Try t e o -> do
         let iom = evalExprs t m
-        iom >>= \m' -> if fault m' then do
+        iom >>= \m' -> if fault m' then
             evalExprs o (M.bind e (AString (head $ output m')) m)
+            >>= \m'' -> return $ M.unbind e m''
             else return m'
     Take vs body -> do
         let len = length vs
@@ -293,7 +294,7 @@ evalExpr e m = case e of
         else do
             let elems = reverse $ take len (stack m)
             let m' = M.bindl (zip vs elems) (M.dropUnsafe len m)
-            evalExprs body m'
+            evalExprs body m' >>= \m'' -> return $ M.unbindl vs m''
     Peek vs body -> do
         let len = length vs
         if len > length (stack m) then
@@ -301,7 +302,7 @@ evalExpr e m = case e of
         else do
             let elems = reverse $ take len (stack m)
             let m' = M.bindl (zip vs elems) m
-            evalExprs body m'
+            evalExprs body m' >>= \m'' -> return $ M.unbindl vs m''
     While cond body -> do
         m' <- evalExprs cond m
         let (b, m'') = truth m'

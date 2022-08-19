@@ -85,8 +85,14 @@ getFunc s m = Map.lookup s (funcs m)
 bind :: String -> Atom -> Machine -> Machine
 bind s v m = m { binds = Map.insert s v (binds m) }
 
+unbind :: String -> Machine -> Machine
+unbind s m = m { binds = Map.delete s (binds m) }
+
 bindl :: [(String, Atom)] -> Machine -> Machine
 bindl bs m = foldl (\m (s, v) -> bind s v m) m bs
+
+unbindl :: [String] -> Machine -> Machine
+unbindl bs m = foldl (flip unbind) m bs
 
 get :: String -> Machine -> Maybe Atom
 get s m = Map.lookup s (binds m)

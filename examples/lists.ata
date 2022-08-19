@@ -5,6 +5,6 @@ entry {
     try {
         [1, 2, 3] ["4", 5, "6"] : putsln
     } else err {
-        "This error occured: " puts err puts
+        "This error occured: " puts err putsln
     }
 }
