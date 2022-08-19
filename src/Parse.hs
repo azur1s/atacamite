@@ -2,7 +2,7 @@
 
 module Parse where
 
-import Data.Functor (($>))
+import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
@@ -51,6 +51,7 @@ data Hint
     | HBool
     | HString
     | HList Hint
+    | HGen String
     deriving (Show)
 
 data Stmt
@@ -100,6 +101,12 @@ ident' = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
         first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?"
         rest = first ++ ['0'..'9'] ++ "'"
 
+hident :: Parser String
+hident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
+    where
+        first = ['a'..'z']
+        rest = first ++ ['A'..'Z']
+
 -- | Atoms
 
 aInt :: Parser Atom
@@ -138,7 +145,7 @@ intrList :: [String]
 intrList = [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "||", "&&", "!"
-    , "?"
+    , "?", "@", "**", "*!"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush", "sleep"
@@ -187,28 +194,20 @@ parseExprs path source = parse (exprs' <* eof <?> "expression") path (pack sourc
 
 -- | Hint
 
-hint :: Parser Hint
-hint = 
-    HInt     <$ keyword "int"
-    <|> HFloat  <$ keyword "float"
-    <|> HBool   <$ keyword "bool"
-    <|> HString <$ keyword "string"
-    <|> HList   <$> (symbol "[" *> hint <* symbol "]")
-    <?> "typehint"
-
-hint' :: Parser (Locatable Hint)
-hint' = do
+hint :: Parser (Locatable Hint)
+hint = do
     s <- getSourcePos
     Locatable (convSP s) <$> (
-        HInt        <$ keyword "int"
-        <|> HFloat  <$ keyword "float"
-        <|> HBool   <$ keyword "bool"
-        <|> HString <$ keyword "string"
-        <|> HList   <$> (symbol "[" *> hint <* symbol "]")
+        HInt        <$ keyword "Int"
+        <|> HFloat  <$ keyword "Float"
+        <|> HBool   <$ keyword "Bool"
+        <|> HString <$ keyword "String"
+        <|> HList   <$> ((symbol "[" *> hint <* symbol "]") <&> value)
+        <|> HGen    <$> hident
         <?> "typehint")
 
 hints' :: Parser [Locatable Hint]
-hints' = many hint' <?> "typehints"
+hints' = many hint <?> "typehints"
 
 -- | Statements
 

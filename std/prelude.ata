@@ -1,1 +1,11 @@
-;; empty
+func __len__ [a] -- [a] Int {
+    dup [] = if {
+        0
+    } else {
+        ** drop __len__ 1 +
+    }
+}
+
+func len [a] -- Int {
+    __len__ swap drop
+}

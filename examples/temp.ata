@@ -1,19 +1,6 @@
-func hello string bool -- {
-    if { "!" } else { "" }
-    "Hello "
-    rot swap
-    puts puts putsln
-}
-
-func prompt string -- string {
-    puts flush gets
-}
-
-func t -- { "" puts }
-func t2 string -- { drop }
-func t3 -- string { "Hello" }
+import #prelude ;; len
 
 entry {
-    "What is your name? " prompt
-    true hello
+    [1, 2, 3] len putsln
+    "abcd" *! len putsln
 }
