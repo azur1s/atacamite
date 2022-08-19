@@ -94,6 +94,12 @@ ident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
         first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?:"
         rest = first ++ ['0'..'9'] ++ "'"
 
+ident' :: Parser String
+ident' = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
+    where
+        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?"
+        rest = first ++ ['0'..'9'] ++ "'"
+
 -- | Atoms
 
 aInt :: Parser Atom
@@ -209,7 +215,7 @@ hints' = many hint' <?> "typehints"
 func :: Parser Stmt
 -- func name a b c , d e f { .. }
 func = do
-    id <- keyword "func" *> ident
+    id <- keyword "func" *> ident'
     args <- hints'
     rets <- optional (keyword "--" *> hints')
     body <- symbol "{" *> exprs <* symbol "}"

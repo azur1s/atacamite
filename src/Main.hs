@@ -23,6 +23,7 @@ inject p name = map (\s -> do
     case value s of Func n a r b -> Locatable loc (Func (f name ++ n) a r b); _ -> s) p
     where f name = case name of Just n -> n ++ "::" ; Nothing -> ""
 
+-- TODO: check circular imports
 parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) Program)
 parseFile path = do
     fullPath <- canonicalizePath path
