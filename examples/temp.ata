@@ -1,3 +1,12 @@
+func head [a] -- a {
+    !. swap drop
+}
+
+func tail [a] -- [a] {
+    !. drop
+}
+
 entry {
-    "\n" puts
+    [1, 2, 3] head putsln
+    [1, 2, 3] tail putsln
 }

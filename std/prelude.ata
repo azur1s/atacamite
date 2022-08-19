@@ -1,8 +1,12 @@
+func isEmptyList [a] -- Bool { [] = }
+func head        [a] -- a    { !. swap drop }
+func tail        [a] -- [a]  { !. drop }
+
 func __len__ [a] -- [a] Int {
-    dup [] = if {
+    dup isEmptyList if {
         0
     } else {
-        !. drop __len__ 1 +
+        tail __len__ 1 +
     }
 }
 

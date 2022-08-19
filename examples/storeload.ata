@@ -1,8 +1,0 @@
-import #prelude
-
-entry {
-    "Hello, World" store(sentence) ;; pop "Hello, World" to `sentence`
-    ":D"
-    load(sentence) putsln ;; load `sentence` to stack
-    putsln
-}

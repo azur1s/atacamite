@@ -1,5 +1,0 @@
-entry {
-    "Hello..." putsln
-    5000 sleep
-    "...World!" putsln
-}
