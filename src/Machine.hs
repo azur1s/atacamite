@@ -1,7 +1,6 @@
 module Machine where
 
 import Control.Concurrent (threadDelay)
-import Data.Maybe (isNothing, fromJust)
 import Data.Map (Map)
 import Parse (Atom(..), Body)
 import System.IO (hFlush, stdout)
