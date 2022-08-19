@@ -1,5 +1,9 @@
 import #prelude as prelude
 
-func strlen string -- int {
+func strlen String -- Int {
     !! prelude::len
+}
+
+func concat String String -- String {
+    !! swap !! : ..
 }
