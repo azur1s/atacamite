@@ -1,11 +1,13 @@
 # Atacamite
-A statically typed, stack-based programming language implemented in Haskell.
+A (soon to be) statically typed, stack-based programming language implemented in Haskell.
 
 ### Building
+Dependencies: `cabal`, `make`
 ```console
-$ ./make.sh
-..
-Done!
-$ ./atacamite
+$ make all
+cabal install ..
+...
+cp std/*.ata /home/azur/.atacamite/
+$ atacamite
 atacamite version 0.1.0
 ```
