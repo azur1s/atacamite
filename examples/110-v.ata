@@ -40,7 +40,7 @@ func nextTape [Int] -- [Int] {
             if { drop len' 1 - } else { } ;; [i* i]
             store(a) ;; [i], pop i* -> a
 
-            dup  ;; [i* i]
+            dup      ;; [i* i]
             store(b) ;; [i], pop i* -> b
 
             dup   ;; [i* i]
@@ -49,11 +49,11 @@ func nextTape [Int] -- [Int] {
             len'  ;; [len i* i* i]
             1 - > ;; [bool i* i]
             if { drop 0 } else { } ;; [i* i]
-            store(c) ;; [i], pop i* -> c
+            store(c)        ;; [i], pop i* -> c
             tape' load(c) @ ;; [c i]
             tape' load(b) @ ;; [b c i]
             tape' load(a) @ ;; [a b c i]
-            3 .* ;; [[a b c] i]
+            3 .*            ;; [[a b c] i]
             2 store(r)
             dup [1, 1, 1] = if { 0 store(r) } else { }
             dup [1, 1, 0] = if { 1 store(r) } else { }
@@ -67,9 +67,9 @@ func nextTape [Int] -- [Int] {
             load(r)
             ;; [i* i]
             dup 1 > if { drop 0 } else { } ;; clamp
-            1 .* ;; [[i*] i]
-            load(result) ;; [[r..] [i*] i]
-            // ;; [[i* : r ] i]
+            1 .*          ;; [[i*] i]
+            load(result)  ;; [[r..] [i*] i]
+            //            ;; [[i* : r ] i]
             store(result) ;; [i], pop [i* : r] -> resulta
             1 +
         } drop
