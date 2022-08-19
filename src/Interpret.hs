@@ -25,7 +25,7 @@ unaopErr op a = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a)
 
 add, sub, mul, div, mod, exp :: Machine -> Machine
 eq, gt, lt, ge, le, ne, or, and, not :: Machine -> Machine
-index, headtail, explode, join :: Machine -> Machine
+index, headtail, explode, join, idlist :: Machine -> Machine
 
 add m = case check2 m of
     (Just r, m') -> case r of
