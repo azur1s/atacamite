@@ -136,20 +136,20 @@ not m = case check m of
 
 index m = case check2 m of
     (Just r, m') -> case r of
-        (AInt a, AList b) -> if length b <= a then M.err "index out of bounds while indexing list" m' else
+        (AInt a, AList b) -> if length b <= a then M.err "`@` index out of bounds while indexing list" m' else
             M.push (b !! a) m'
-        (AInt a, AString b) -> if length b <= a then M.err "index out of bounds while indexing string" m' else
+        (AInt a, AString b) -> if length b <= a then M.err "`@` index out of bounds while indexing string" m' else
             M.push (AString [b !! a]) m'
-        (a, b) -> binopErr "index" a b m'
+        (a, b) -> binopErr "@" a b m'
     (Nothing, m') -> m'
 
 headtail m = case check m of
     (Just r, m') -> case r of
-        (AList a) -> if null a then M.err "head of empty list" m' else
+        (AList a) -> if null a then M.err "`!.` can't perform on empty list" m' else
             M.push (head a) (M.push (AList (tail a)) m')
-        (AString a) -> if null a then M.err "head of empty string" m' else
+        (AString a) -> if null a then M.err "`!.` can't perform on empty string" m' else
             M.push (AString [head a]) (M.push (AString (tail a)) m')
-        a -> unaopErr "head" a m'
+        a -> unaopErr "!." a m'
     (Nothing, m') -> m'
 
 implode m = case check m of
@@ -158,14 +158,14 @@ implode m = case check m of
             M.push (AString (concatMap (\case
                 AString y -> y
                 _ -> []) a)) m' else
-            M.err "implode: list contains non-string elements" m'
-        a -> unaopErr "implode" a m'
+            M.err "`..` found list contains non-string elements" m'
+        a -> unaopErr ".." a m'
     (Nothing, m') -> m'
 
 explode m = case check m of
     (Just r, m') -> case r of
         (AString a) -> M.push (AList (map (\x -> AString [x]) a)) m'
-        a -> unaopErr "explode" a m'
+        a -> unaopErr "!!" a m'
     (Nothing, m') -> m'
 
 join m = case check2 m of
@@ -181,8 +181,8 @@ idlist m = case check m of
     (Just r, m') -> case r of
         (AList a) -> case a of
             [x] -> M.push x m'
-            _ -> M.err "id expects a list of length 1" m'
-        a -> unaopErr "idlist" a m'
+            _ -> M.err "`id` expects a list of length 1" m'
+        a -> unaopErr "id" a m'
     (Nothing, m') -> m'
 
 evalExpr :: Expr -> Machine -> IO Machine
@@ -220,6 +220,22 @@ evalExpr e m = case e of
         ".." -> return $ implode m
         ":"  -> return $ join m
         "id" -> return $ idlist m
+        ".*" -> do
+            let c = M.require 1 m
+            if fault c then return $ M.err "`.*` requires a number for collecting (found nothing on stack)" m
+            else do
+                let (a, m') = M.popUnsafe c
+                case a of
+                    AInt n -> do
+                        let c' = M.require n m'
+                        if fault c' then return $ M.err
+                            ("`.*` not enough elements on the stack to collect (expected "
+                            ++ show n ++ " got " ++ show (length $ stack c') ++ ")") m'
+                        else do
+                            let xs = take n (stack c')
+                            return $ M.push (AList xs) (M.dropUnsafe n m')
+                    e -> return $ M.err ("`.*` requires a number for collecting (got " ++ show e ++ ")") m
+        "rev" -> return $ m { stack = reverse $ stack m }
         "dup"-> do
             let checked = M.require 1 m
             if fault checked then return checked else do
@@ -310,11 +326,11 @@ evalExpr e m = case e of
             m''' <- evalExprs body m''
             evalExpr (While cond body) m'''
         else if b == Just False then return m''
-        else return $ M.err ("Expected boolean, got " ++ show b) m''
+        else return $ M.err ("`while` expected boolean, got " ++ show b) m''
         where truth m = case check m of
                 (Just r, m') -> case r of
                     (ABool a) -> (Just a, m')
-                    a -> (Nothing, M.err ("Expected boolean, got " ++ show a) m')
+                    a -> (Nothing, M.err ("`while` expected boolean, got " ++ show a) m')
                 (Nothing, m') -> (Nothing, m')
 
 evalExprs :: [Expr] -> Machine -> IO Machine
