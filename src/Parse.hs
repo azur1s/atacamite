@@ -42,6 +42,8 @@ data Expr
     | Take  [String] Body
     | Peek  [String] Body
     | While Body Body
+    | Store String
+    | Load  String
     deriving (Show)
 
 type Body = [Expr]
@@ -94,7 +96,7 @@ keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
 ident :: Parser String
 ident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
     where
-        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?:"
+        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?()"
         rest = first ++ ['0'..'9'] ++ "'"
 
 ident' :: Parser String
@@ -182,8 +184,14 @@ while :: Parser Expr
 while = While <$> (keyword "while" *> exprs)
     <*> (symbol "{" *> exprs <* symbol "}") <?> "while block"
 
+store :: Parser Expr
+store = Store <$> (symbol "->" *> ident) <?> "store"
+
+load :: Parser Expr
+load = Load <$> (symbol "::" *> ident ) <?> "load"
+
 expr :: Parser Expr
-expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> callintr <?> "expression"
+expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> callintr <?> "expression"
 
 exprs :: Parser Body
 exprs = many expr <?> "body"

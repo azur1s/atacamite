@@ -11,6 +11,7 @@ data Machine = Machine
     , stack  :: [Atom]
     , funcs  :: Map String Body
     , consts :: Map String Atom
+    , memory :: Map String Atom
     , binds  :: Map String Atom
     , output :: [String]
     , errors :: [String]
@@ -22,6 +23,7 @@ initM = Machine
     , stack  = []
     , funcs  = Map.empty
     , consts = Map.empty
+    , memory = Map.empty
     , binds  = Map.empty
     , output = []
     , errors = []
@@ -78,7 +80,7 @@ pop m = do
 size :: Machine -> Int
 size = length . stack
 
--- | Functions & Bindings
+-- | Environment functions
 
 bindFunc :: String -> Body -> Machine -> Machine
 bindFunc s body m = m { funcs = Map.insert s body (funcs m) }
@@ -91,6 +93,12 @@ bindConst s body m = m { consts = Map.insert s body (consts m) }
 
 getConst :: String -> Machine -> Maybe Atom
 getConst s m = Map.lookup s (consts m)
+
+storeMem :: String -> Atom -> Machine -> Machine
+storeMem s a m = m { memory = Map.insert s a (memory m) }
+
+loadMem :: String -> Machine -> Maybe Atom
+loadMem s m = Map.lookup s (memory m)
 
 bind :: String -> Atom -> Machine -> Machine
 bind s v m = m { binds = Map.insert s v (binds m) }

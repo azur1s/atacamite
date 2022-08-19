@@ -339,6 +339,14 @@ evalExpr e m = case e of
                     (ABool a) -> (Just a, m')
                     a -> (Nothing, M.err ("`while` expected boolean, got " ++ show a) m')
                 (Nothing, m') -> (Nothing, m')
+    Store s -> do
+        let checked = M.require 1 m
+        if fault checked then return checked else do
+            let (a, m') = M.popUnsafe checked
+            return $ M.storeMem s a m'
+    Load s -> return $ case M.loadMem s m of
+        Just a -> M.push a m
+        Nothing -> M.err ("`load` cannot find " ++ s ++ " in memory") m
 
 evalExprs :: [Expr] -> Machine -> IO Machine
 evalExprs [] m = return m

@@ -1,0 +1,8 @@
+import #prelude
+
+entry {
+    "Hello, World" -> sentence ;; pop "Hello, World" to `sentence`
+    ":D"
+    :: sentence putsln ;; load `sentence` to stack
+    putsln
+}
