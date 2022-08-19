@@ -243,6 +243,7 @@ evalExpr e m = case e of
                             let xs = take n (stack c')
                             return $ M.push (AList xs) (M.dropUnsafe n m')
                     e -> return $ M.err ("`.*` requires a number for collecting (got " ++ show e ++ ")") m
+        "stack" -> return $ M.push (AList (stack m)) m
         "rev" -> return $ m { stack = reverse $ stack m }
         "dup"-> do
             let checked = M.require "dup" 1 m

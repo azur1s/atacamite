@@ -2,7 +2,7 @@ fun isEmptyList [a] -- Bool { [] = }
 fun head        [a] -- a    { !. swap drop }
 fun tail        [a] -- [a]  { !. drop }
 
-fun __len__ [a] -- [a] Int {
+fun __len__ [a] -- [a], Int {
     dup isEmptyList if {
         0
     } else {

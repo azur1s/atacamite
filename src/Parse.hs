@@ -146,8 +146,8 @@ intrList = [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "||", "&&", "!"
     , "?"
-    , "@", "!.", "..", "!!", "//", "id", ".*", "rev"
-    , "dup", "drop", "swap", "over", "rot"
+    , "@", "!.", "..", "!!", "//", "id", ".*"
+    , "stack", "rev", "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush", "sleep"
     ]
@@ -218,7 +218,7 @@ hint = do
         <?> "typehint")
 
 hints' :: Parser [Locatable Hint]
-hints' = many hint <?> "typehints"
+hints' = sepBy hint (symbol ",") <?> "typehints"
 
 -- | Statements
 
