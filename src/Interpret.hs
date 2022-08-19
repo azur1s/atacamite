@@ -189,14 +189,21 @@ evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
     Push lv -> return $ M.push (value lv) m
     Call s  -> do
+        -- Function
         let f = M.getFunc (value s) m
         case f of
             Just body -> evalExprs body m
             Nothing   -> do
-                let mv = M.get (value s) m
-                case mv of
-                    Nothing -> return $ M.err ("A bind or a function not found: " ++ value s) m
-                    Just va -> return $ M.push va m
+                -- Constant
+                let cnst = M.getConst (value s) m
+                case cnst of
+                    Just cb -> evalExprs cb m
+                    Nothing -> do
+                        -- Binding
+                        let bind = M.get (value s) m
+                        case bind of
+                            Just b  -> return $ M.push  b m
+                            Nothing -> return $ M.err ("A bind or a function not found: " ++ value s) m
     Intr s -> case value s of
         "+"  -> return $ add m
         "-"  -> return $ sub m
@@ -341,9 +348,10 @@ evalExprs (e:es) m = do
 
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
-    Entry body -> evalExprs body m
-    Func name _ _ body -> return $ M.bindFunc name body m
     Import _ -> return m
+    Const name e -> return $ M.bindConst name e m
+    Func name _ _ body -> return $ M.bindFunc name body m
+    Entry body -> evalExprs body m
 
 evalProgram :: Program -> Machine -> IO Machine
 evalProgram [] m = return m

@@ -56,9 +56,10 @@ data Hint
     deriving (Show)
 
 data Stmt
-    = Func  String [Locatable Hint] [Locatable Hint] Body
+    = Import String
+    | Const String Body
+    | Func  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
-    | Import String
     deriving (Show)
 
 type Program = [Locatable Stmt]
@@ -217,8 +218,13 @@ hints' = many hint <?> "typehints"
 
 -- | Statements
 
+importf :: Parser Stmt
+importf = Import <$> (keyword "import" *> ident) <?> "import"
+
+consta :: Parser Stmt
+consta = Const <$> (keyword "const" *> ident) <*> (symbol "{" *> exprs <* symbol "}") <?> "constant"
+
 func :: Parser Stmt
--- func name a b c , d e f { .. }
 func = do
     name <- keyword "func" *> ident'
     args <- hints'
@@ -229,16 +235,13 @@ func = do
 entry :: Parser Stmt
 entry = Entry <$> (keyword "entry" *> symbol "{" *> exprs <* symbol "}") <?> "entry"
 
-importf :: Parser Stmt
-importf = Import <$> (keyword "import" *> ident) <?> "import"
-
 stmt :: Parser Stmt
 stmt = func <|> entry <|> importf <?> "statement"
 
 stmt' :: Parser (Locatable Stmt)
 stmt' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (func <|> entry <|> importf <?> "statement")
+    Locatable (convSP s) <$> (consta <|> func <|> entry <|> importf <?> "statement")
 
 stmts' :: Parser Program
 stmts' = many stmt' <?> "statements"
