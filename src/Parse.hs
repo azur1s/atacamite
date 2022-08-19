@@ -96,12 +96,6 @@ keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
 ident :: Parser String
 ident = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
     where
-        first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?()"
-        rest = first ++ ['0'..'9'] ++ "'"
-
-ident' :: Parser String
-ident' = lexeme $ (:) <$> oneOf first <*> many (oneOf rest)
-    where
         first = ['a'..'z'] ++ ['A'..'Z'] ++ "_" ++ "!@#$%^&*_+-=,./<>?"
         rest = first ++ ['0'..'9'] ++ "'"
 
@@ -185,10 +179,10 @@ while = While <$> (keyword "while" *> exprs)
     <*> (symbol "{" *> exprs <* symbol "}") <?> "while block"
 
 store :: Parser Expr
-store = Store <$> (symbol "->" *> ident) <?> "store"
+store = Store <$> (keyword "store" *> symbol "(" *> ident <* symbol ")") <?> "store"
 
 load :: Parser Expr
-load = Load <$> (symbol "::" *> ident ) <?> "load"
+load = Load <$> (keyword "load" *> symbol "(" *> ident <* symbol ")") <?> "load"
 
 expr :: Parser Expr
 expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> callintr <?> "expression"
@@ -234,7 +228,7 @@ consta = Const <$> (keyword "const" *> ident) <*> atom <?> "constant"
 
 func :: Parser Stmt
 func = do
-    name <- keyword "func" *> ident'
+    name <- keyword "func" *> ident
     args <- hints'
     rets <- optional (keyword "--" *> hints')
     body <- symbol "{" *> exprs <* symbol "}"

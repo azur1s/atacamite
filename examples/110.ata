@@ -19,45 +19,45 @@ func fmtTape [Int] {
 
 func nextTape [Int] -- [Int] {
   dup len
-  [] -> result
+  [] store(result)
   take tape' len' {
     0 while dup len' < {
       ;; get index
-      dup 1 - dup 0 < if { drop len' 1 - } else { } -> a 
-      dup -> b
-      dup 1 + dup len' 1 - > if { drop 0 } else { } -> c
+      dup 1 - dup 0 < if { drop len' 1 - } else { } store(a) 
+      dup store(b)
+      dup 1 + dup len' 1 - > if { drop 0 } else { } store(c)
 
-      tape' :: c @ 
-      tape' :: b @
-      tape' :: a @
+      tape' load(c) @ 
+      tape' load(b) @
+      tape' load(a) @
       3 .*
-      2 -> r
-      dup [1, 1, 1] = if { 0 -> r } else { }
-      dup [1, 1, 0] = if { 1 -> r } else { }
-      dup [1, 0, 1] = if { 1 -> r } else { }
-      dup [1, 0, 0] = if { 0 -> r } else { }
-      dup [0, 1, 1] = if { 1 -> r } else { }
-      dup [0, 1, 0] = if { 1 -> r } else { }
-      dup [0, 0, 1] = if { 1 -> r } else { }
-      dup [0, 0, 0] = if { 0 -> r } else { }
-      drop :: r
+      2 store(r)
+      dup [1, 1, 1] = if { 0 store(r) } else { }
+      dup [1, 1, 0] = if { 1 store(r) } else { }
+      dup [1, 0, 1] = if { 1 store(r) } else { }
+      dup [1, 0, 0] = if { 0 store(r) } else { }
+      dup [0, 1, 1] = if { 1 store(r) } else { }
+      dup [0, 1, 0] = if { 1 store(r) } else { }
+      dup [0, 0, 1] = if { 1 store(r) } else { }
+      dup [0, 0, 0] = if { 0 store(r) } else { }
+      drop load(r)
       dup 1 > if { drop 0 } else { } ;; clamp
-      1 .* :: result //
-      -> result
+      1 .* load(result) //
+      store(result)
       1 +
     } drop
   }
-  :: result
+  load(result)
 }
 
 entry {
-  starting-tape -> tape
-  :: tape len   -> amount
-  :: tape fmtTape
-  0 while dup :: amount < {
+  starting-tape store(tape)
+  load(tape) len   store(amount)
+  load(tape) fmtTape
+  0 while dup load(amount) < {
     "" putsln
-    :: tape nextTape -> tape
-    :: tape fmtTape
+    load(tape) nextTape store(tape)
+    load(tape) fmtTape
     1 +
   }
 }

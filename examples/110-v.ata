@@ -29,7 +29,7 @@ func fmtTape [Int] {
 
 func nextTape [Int] -- [Int] {
     dup len
-    [] -> result
+    [] store(result)
     take tape' len' {
         0 while dup len' < {
             ;; [i]
@@ -38,10 +38,10 @@ func nextTape [Int] -- [Int] {
             dup ;; [i* i* i]
             0 < ;; [bool i]
             if { drop len' 1 - } else { } ;; [i* i]
-            -> a ;; [i], pop i* -> a
+            store(a) ;; [i], pop i* -> a
 
             dup  ;; [i* i]
-            -> b ;; [i], pop i* -> b
+            store(b) ;; [i], pop i* -> b
 
             dup   ;; [i* i]
             1 +   ;; [i* i]
@@ -49,42 +49,42 @@ func nextTape [Int] -- [Int] {
             len'  ;; [len i* i* i]
             1 - > ;; [bool i* i]
             if { drop 0 } else { } ;; [i* i]
-            -> c ;; [i], pop i* -> c
-            tape' :: c @ ;; [c i]
-            tape' :: b @ ;; [b c i]
-            tape' :: a @ ;; [a b c i]
+            store(c) ;; [i], pop i* -> c
+            tape' load(c) @ ;; [c i]
+            tape' load(b) @ ;; [b c i]
+            tape' load(a) @ ;; [a b c i]
             3 .* ;; [[a b c] i]
-            2 -> r
-            dup [1, 1, 1] = if { 0 -> r } else { }
-            dup [1, 1, 0] = if { 1 -> r } else { }
-            dup [1, 0, 1] = if { 1 -> r } else { }
-            dup [1, 0, 0] = if { 0 -> r } else { }
-            dup [0, 1, 1] = if { 1 -> r } else { }
-            dup [0, 1, 0] = if { 1 -> r } else { }
-            dup [0, 0, 1] = if { 1 -> r } else { }
-            dup [0, 0, 0] = if { 0 -> r } else { }
+            2 store(r)
+            dup [1, 1, 1] = if { 0 store(r) } else { }
+            dup [1, 1, 0] = if { 1 store(r) } else { }
+            dup [1, 0, 1] = if { 1 store(r) } else { }
+            dup [1, 0, 0] = if { 0 store(r) } else { }
+            dup [0, 1, 1] = if { 1 store(r) } else { }
+            dup [0, 1, 0] = if { 1 store(r) } else { }
+            dup [0, 0, 1] = if { 1 store(r) } else { }
+            dup [0, 0, 0] = if { 0 store(r) } else { }
             drop
-            :: r
+            load(r)
             ;; [i* i]
             dup 1 > if { drop 0 } else { } ;; clamp
             1 .* ;; [[i*] i]
-            :: result ;; [[r..] [i*] i]
+            load(result) ;; [[r..] [i*] i]
             // ;; [[i* : r ] i]
-            -> result ;; [i], pop [i* : r] -> resulta
+            store(result) ;; [i], pop [i* : r] -> resulta
             1 +
         } drop
     }
-    :: result
+    load(result)
 }
 
 entry {
-    starting-tape -> tape
-    :: tape len   -> amount
-    :: tape fmtTape
-    0 while dup :: amount < {
+    starting-tape  store(tape)
+    load(tape) len store(amount)
+    load(tape) fmtTape
+    0 while dup load(amount) < {
         "" putsln
-        :: tape nextTape -> tape
-        :: tape fmtTape
+        load(tape) nextTape store(tape)
+        load(tape) fmtTape
         1 +
     }
 }
