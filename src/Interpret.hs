@@ -35,6 +35,7 @@ add m = case check2 "+" m of
         (AFloat a, AFloat b) -> M.push (AFloat (a + b)) m'
         (a, b) -> binopErr "+" a b m'
     (Nothing, m') -> m'
+
 sub m = case check2 "-" m of
     (Just r, m') -> case r of
         (AInt a, AInt b)     -> M.push (AInt (b - a)) m'

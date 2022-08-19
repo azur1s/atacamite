@@ -14,8 +14,10 @@ import Text.Megaparsec.Error (ParseErrorBundle)
 import System.Exit (exitWith, ExitCode(ExitFailure))
 
 getImports :: Program -> [String]
-getImports p =
-    map ((\(Import path) -> path ++ ".ata") . value) (filter (\s -> case value s of Import _ -> True; _ -> False) p)
+getImports = map i . f
+    where
+        i = (\(Import path) -> path ++ ".ata") . value
+        f = filter (\s -> case value s of Import _ -> True; _ -> False)
 
 -- TODO: check circular imports
 parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) Program)
@@ -43,7 +45,6 @@ parseFile path = do
                 let all = concat ps ++ p
                 return $ Right all
                 else return $ Left $ head (map (\(Left e) -> e) errs)
-
 
 version :: String
 version = "atacamite version 0.1.0"
