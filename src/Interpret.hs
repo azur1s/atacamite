@@ -1,7 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
 module Interpret where
 
 import Machine (Machine (..))
 import Parse (Expr (..), Locatable (..), Stmt(..), Program, Atom (..), printAtom)
+import Util (sameVariant)
 import qualified Machine as M
 
 check :: Machine -> (Maybe Atom, Machine)
@@ -25,7 +27,7 @@ unaopErr op a = M.err ("Cannot perform `" ++ op ++ "` on " ++ show a)
 
 add, sub, mul, div, mod, exp :: Machine -> Machine
 eq, gt, lt, ge, le, ne, or, and, not :: Machine -> Machine
-index, headtail, explode, join, idlist :: Machine -> Machine
+index, headtail, implode, explode, join, idlist :: Machine -> Machine
 
 add m = case check2 m of
     (Just r, m') -> case r of
@@ -150,6 +152,16 @@ headtail m = case check m of
         a -> unaopErr "head" a m'
     (Nothing, m') -> m'
 
+implode m = case check m of
+    (Just r, m') -> case r of
+        (AList a) -> if sameVariant a then
+            M.push (AString (concatMap (\case
+                AString y -> y
+                _ -> []) a)) m' else
+            M.err "implode: list contains non-string elements" m'
+        a -> unaopErr "implode" a m'
+    (Nothing, m') -> m'
+
 explode m = case check m of
     (Just r, m') -> case r of
         (AString a) -> M.push (AList (map (\x -> AString [x]) a)) m'
@@ -158,9 +170,11 @@ explode m = case check m of
 
 join m = case check2 m of
     (Just r, m') -> case r of
-        (AList a, AList b)     -> M.push (AList (a ++ b)) m'
+        (AList a, AList b) -> if sameVariant a && sameVariant b then
+            M.push (AList (a ++ b)) m' else
+            M.err "`:` expects both lists to have same types" m'
         (AString a, AString b) -> M.push (AString (a ++ b)) m'
-        (a, b) -> binopErr "join" a b m'
+        (a, b) -> binopErr ":" a b m'
     (Nothing, m') -> m'
 
 idlist m = case check m of
@@ -203,6 +217,7 @@ evalExpr e m = case e of
         "@"  -> return $ index m
         "!." -> return $ headtail m
         "!!" -> return $ explode m
+        ".." -> return $ implode m
         ":"  -> return $ join m
         "id" -> return $ idlist m
         "dup"-> do
@@ -266,9 +281,11 @@ evalExpr e m = case e of
                     (ABool a) -> (Just a, m')
                     a -> (Nothing, M.err ("Expected boolean, got " ++ show a) m')
                 (Nothing, m') -> (Nothing, m')
-    Try t o -> do
+    Try t e o -> do
         let iom = evalExprs t m
-        iom >>= \m' -> if fault m' then evalExprs o m else return m'
+        iom >>= \m' -> if fault m' then do
+            evalExprs o (M.bind e (AString (head $ output m')) m)
+            else return m'
     Take vs body -> do
         let len = length vs
         if len > length (stack m) then

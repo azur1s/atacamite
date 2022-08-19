@@ -23,7 +23,7 @@ data Atom
     | ABool   Bool
     | AString String
     | AList   [Atom]
-    deriving (Show, Eq)
+    deriving (Show, Eq, Ord)
 
 printAtom :: Atom -> String
 printAtom a = case a of
@@ -38,7 +38,7 @@ data Expr
     | Call (Locatable String)
     | Intr (Locatable String)
     | If    Body Body
-    | Try   Body Body
+    | Try   Body String Body
     | Take  [String] Body
     | Peek  [String] Body
     | While Body Body
@@ -147,7 +147,7 @@ intrList = [ "+", "-", "*", "/", "%", "^"
     , "=", "<", ">", "<=", ">=", "!="
     , "||", "&&", "!"
     , "?"
-    , "@", "!.", "!!", ":", "id"
+    , "@", "!.", "..", "!!", ":", "id"
     , "dup", "drop", "swap", "over", "rot"
     , "puts", "putsln"
     , "gets", "flush", "sleep"
@@ -167,7 +167,7 @@ ifelse = If <$> (keyword "if" *> symbol "{" *> exprs)
 
 tryelse :: Parser Expr
 tryelse = Try <$> (keyword "try" *> symbol "{" *> exprs)
-    <*> ( symbol "}" *> keyword "else" *> symbol "{" *> exprs <* symbol "}") <?> "try block"
+    <*> ( symbol "}" *> keyword "else" *> ident) <*> (symbol "{" *> exprs <* symbol "}") <?> "try block"
 
 takeblk :: Parser Expr
 takeblk = Take <$> (keyword "take" *> some ident)

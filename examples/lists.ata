@@ -1,0 +1,10 @@
+entry {
+    "abc" !! dup putsln
+    .. putsln
+    [1, 2, 3] [4, 5, 6]     : putsln
+    try {
+        [1, 2, 3] ["4", 5, "6"] : putsln
+    } else err {
+        "This error occured: " puts err puts
+    }
+}
