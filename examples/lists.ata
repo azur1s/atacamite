@@ -3,7 +3,7 @@ import #strings
 entry {
     "abc" !! dup putsln ;; string explode  -- "abc" -> ["a", "b", "c"]
     .. putsln           ;; implode it back -- ["a", "b", "c"] -> ["abc"]
-    [1, 2, 3] [4, 5, 6] : putsln ;; list concatenation
+    [1, 2, 3] [4, 5, 6] // putsln ;; list concatenation
 
     try {
         [1, 2, 3] ["4", 5, "6"] : putsln
@@ -12,6 +12,6 @@ entry {
     }
 
     ;; `concat` in #strings library
-    "abc" "def" !! swap !! : .. putsln
+    "abc" "def" !! swap !! // .. putsln
     "abc" "def" concat putsln
 }

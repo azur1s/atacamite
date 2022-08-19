@@ -172,9 +172,9 @@ join m = case check2 m of
     (Just r, m') -> case r of
         (AList a, AList b) -> if sameVariant a && sameVariant b then
             M.push (AList (a ++ b)) m' else
-            M.err "`:` expects both lists to have same types" m'
+            M.err "`//` expects both lists to have same types" m'
         (AString a, AString b) -> M.push (AString (a ++ b)) m'
-        (a, b) -> binopErr ":" a b m'
+        (a, b) -> binopErr "//" a b m'
     (Nothing, m') -> m'
 
 idlist m = case check m of
@@ -225,7 +225,7 @@ evalExpr e m = case e of
         "!." -> return $ headtail m
         "!!" -> return $ explode m
         ".." -> return $ implode m
-        ":"  -> return $ join m
+        "//" -> return $ join m
         "id" -> return $ idlist m
         ".*" -> do
             let c = M.require 1 m

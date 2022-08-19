@@ -5,5 +5,5 @@ func strlen String -- Int {
 }
 
 func concat String String -- String {
-    !! swap !! : ..
+    !! swap !! // ..
 }

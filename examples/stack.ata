@@ -1,9 +1,10 @@
-func space -- { " " puts }
+func sputs -- { puts " " puts }
 
 entry {
-    1 2      "Normal: " puts puts space putsln
-    1 2 swap "Swap:   " puts puts space putsln
-    1 dup    "Dup:    " puts puts space putsln
-    1 2 over "Over:   " puts puts space puts space putsln
-    1 2 drop "Drop:   " puts putsln
+    "a" "b" "c"      "Normal: " puts sputs sputs putsln
+    "a" "b" "c" dup  "Dup:    " puts sputs sputs sputs putsln
+    "a" "b" "c" drop "Drop:   " puts sputs putsln
+    "a" "b" "c" swap "Swap:   " puts sputs sputs putsln
+    "a" "b" "c" over "Over:   " puts sputs sputs putsln
+    "a" "b" "c" rot  "Rot:    " puts sputs sputs putsln
 }

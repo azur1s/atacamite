@@ -1,0 +1,66 @@
+import #prelude
+
+const starting-tape [
+  1, 0, 0, 1, 0, 1, 1, 0, 0, 1,
+  0, 0, 1, 0, 1, 0, 0, 1, 0, 1
+]
+
+func fmtTape [Int] {
+  dup len
+  take tape' len' {
+    0 while dup len' < {
+      tape' swap dup rot @ 1 =
+      if { "█" } else { " " } puts
+      1 +
+    } drop
+  }
+}
+
+func nextTape [Int] -- [Int] {
+  dup len
+  [] -> result
+  take tape' len' {
+    0 while dup len' < {
+      dup len' 1 - = if {
+        [1] :: result // -> result
+      } else {
+        ;; get index
+        dup 1 - dup 0 < if { drop 0 } else { } -> a 
+        dup -> b
+        dup 1 + dup len' 1 - > if { drop len' 1 - } else { } -> c
+
+        tape' :: c @ 
+        tape' :: b @
+        tape' :: a @
+        3 .*
+        2 -> r
+        dup [1, 1, 1] = if { 0 -> r } else { }
+        dup [1, 1, 0] = if { 1 -> r } else { }
+        dup [1, 0, 1] = if { 1 -> r } else { }
+        dup [1, 0, 0] = if { 0 -> r } else { }
+        dup [0, 1, 1] = if { 1 -> r } else { }
+        dup [0, 1, 0] = if { 1 -> r } else { }
+        dup [0, 0, 1] = if { 1 -> r } else { }
+        dup [0, 0, 0] = if { 0 -> r } else { }
+        drop :: r
+        dup 1 > if { drop 0 } else { } ;; clamp
+        1 .* :: result //
+        -> result
+      }
+      1 +
+    } drop
+  }
+  :: result
+}
+
+entry {
+  starting-tape -> tape
+  :: tape len   -> amount
+  :: tape fmtTape
+  0 while dup :: amount < {
+    "" putsln
+    :: tape nextTape -> tape
+    :: tape fmtTape
+    1 +
+  }
+}
