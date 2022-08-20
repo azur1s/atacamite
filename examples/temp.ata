@@ -1,5 +1,5 @@
-import #prelude
+import #list ;; map
 
 entry {
-    [1, 2, 3, 4, 5] λ( * ) map
+    [5, 10, 15] \(2 *) map putsln
 }

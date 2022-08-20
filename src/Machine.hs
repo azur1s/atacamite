@@ -10,7 +10,6 @@ data Machine = Machine
     { fault  :: Bool
     , stack  :: [Atom]
     , funs  :: Map String Body
-    , consts :: Map String Atom
     , memory :: Map String Atom
     , binds  :: Map String Atom
     , output :: [String]
@@ -22,7 +21,6 @@ initM = Machine
     { fault  = False
     , stack  = []
     , funs  = Map.empty
-    , consts = Map.empty
     , memory = Map.empty
     , binds  = Map.empty
     , output = []
@@ -87,12 +85,6 @@ bindFun s body m = m { funs = Map.insert s body (funs m) }
 
 getFun :: String -> Machine -> Maybe Body
 getFun s m = Map.lookup s (funs m)
-
-bindConst :: String -> Atom -> Machine -> Machine
-bindConst s body m = m { consts = Map.insert s body (consts m) }
-
-getConst :: String -> Machine -> Maybe Atom
-getConst s m = Map.lookup s (consts m)
 
 storeMem :: String -> Atom -> Machine -> Machine
 storeMem s a m = m { memory = Map.insert s a (memory m) }

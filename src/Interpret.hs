@@ -227,6 +227,14 @@ evalExpr e m = case e of
                             let xs = take n (stack c')
                             return $ M.push (AList xs) (M.dropUnsafe n m')
                     e -> return $ M.err ("`.*` requires a number for collecting (got " ++ show e ++ ")") m
+        "apply" -> do
+            let c = M.require "apply" 2 m
+            if fault c then return $ M.err "`apply` requires two arguments" m
+            else do
+                let (a, m') = M.popUnsafe c
+                case a of
+                    AQuote f -> evalExprs f m'
+                    e -> return $ M.err ("`apply` requires a function (got " ++ show e ++ ")") m
         "stack" -> return $ M.push (AList (stack m)) m
         "rev" -> return $ m { stack = reverse $ stack m }
         "dup"-> do
@@ -285,16 +293,12 @@ evalExpr e m = case e of
             case f of
                 Just body -> evalExprs body m
                 Nothing   -> do
-                    -- Constant
-                    let cnst = M.getConst (value s) m
-                    case cnst of
-                        Just cv -> return $ M.push cv m
-                        Nothing -> do
-                            -- Binding
-                            let bind = M.get (value s) m
-                            case bind of
-                                Just b  -> return $ M.push b m
-                                Nothing -> return $ M.err ("A bind or a funtion not found: " ++ value s) m
+                    -- Binding
+                    let bind = M.get (value s) m
+                    case bind of
+                        Just b  -> return $ M.push b m
+                        Nothing -> return $ M.err ("`" ++ value s ++ "` is undefined") m
+    Quote e -> return $ M.push (AQuote e) m
     If t f -> do
         let (b, m') = truth m
         if b == Just True then evalExprs t m' else evalExprs f m'
@@ -356,7 +360,6 @@ evalExprs (e:es) m = do
 evalStmt :: Stmt -> Machine -> IO Machine
 evalStmt s m = case s of
     Import _ -> return m
-    Const name a -> return $ M.bindConst name (value a) m
     Fun name _ _ body -> return $ M.bindFun name body m
     Entry body -> evalExprs body m
 

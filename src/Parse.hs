@@ -14,7 +14,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Foldable (toList)
 
 data Locatable a = Locatable { location :: (String, Int, Int), value :: a }
-    deriving (Show)
+    deriving (Show, Eq, Ord)
 
 convSP :: SourcePos -> (String, Int, Int)
 convSP (SourcePos f l c) = (f, unPos l, unPos c)
@@ -25,6 +25,7 @@ data Atom
     | ABool   Bool
     | AString String
     | AList   [Atom]
+    | AQuote  Body
     deriving (Show, Eq, Ord)
 
 printAtom :: Atom -> String
@@ -34,10 +35,12 @@ printAtom a = case a of
     ABool b   -> show b
     AString s -> s
     AList l   -> "[" ++ intercalate ", " (map printAtom l) ++ "]"
+    AQuote l  -> "(" ++ unwords (map show l) ++ ")"
 
 data Expr
     = Push (Locatable Atom)
     | Call (Locatable String)
+    | Quote Body
     | If    Body Body
     | Try   Body String Body
     | Take  [String] Body
@@ -45,7 +48,7 @@ data Expr
     | While Body Body
     | Store String
     | Load  String
-    deriving (Show)
+    deriving (Show, Eq, Ord)
 
 type Body = [Expr]
 
@@ -60,7 +63,6 @@ data Hint
 
 data Stmt
     = Import String
-    | Const String (Locatable Atom)
     | Fun  String [Locatable Hint] [Locatable Hint] Body
     | Entry Body
     deriving (Show)
@@ -145,6 +147,9 @@ call = do
     s <- getSourcePos
     Call . Locatable (convSP s) <$> ident
 
+quote :: Parser Expr
+quote = Quote <$> (symbol "\\" *> between (symbol "(") (symbol ")") (some expr))
+
 ifelse :: Parser Expr
 ifelse = If <$> (keyword "if" *> symbol "{" *> exprs)
     <*> ( symbol "}" *> keyword "else" *> symbol "{" *> exprs <* symbol "}") <?> "if block"
@@ -172,7 +177,7 @@ load :: Parser Expr
 load = Load <$> (keyword "load" *> symbol "(" *> ident <* symbol ")") <?> "load"
 
 expr :: Parser Expr
-expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> call <?> "expression"
+expr = quote <|> ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> call <?> "expression"
 
 exprs :: Parser Body
 exprs = many expr <?> "body"
@@ -180,7 +185,7 @@ exprs = many expr <?> "body"
 expr' :: Parser (Locatable Expr)
 expr' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (ifelse <|> tryelse <|> takeblk <|> peekblk <|> call <|> push <?> "expression")
+    Locatable (convSP s) <$> expr
 
 exprs' :: Parser [Locatable Expr]
 exprs' = some expr' <?> "body"
@@ -210,9 +215,6 @@ hints' = sepBy hint (symbol ",") <?> "typehints"
 importf :: Parser Stmt
 importf = Import <$> (keyword "import" *> ident) <?> "import"
 
-consta :: Parser Stmt
-consta = Const <$> (keyword "const" *> ident) <*> atom <?> "constant"
-
 fun :: Parser Stmt
 fun = do
     name <- keyword "fun" *> ident
@@ -230,7 +232,7 @@ stmt = fun <|> entry <|> importf <?> "statement"
 stmt' :: Parser (Locatable Stmt)
 stmt' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (consta <|> fun <|> entry <|> importf <?> "statement")
+    Locatable (convSP s) <$> (fun <|> entry <|> importf <?> "statement")
 
 stmts' :: Parser Program
 stmts' = many stmt' <?> "statements"
