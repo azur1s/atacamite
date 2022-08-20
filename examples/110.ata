@@ -52,7 +52,7 @@ fun nextTape [Int] -- [Int] {
 
 entry {
   starting-tape store(tape)
-  load(tape) len   store(amount)
+  load(tape) len store(amount)
   load(tape) fmtTape
   0 while dup load(amount) < {
     "" putsln
