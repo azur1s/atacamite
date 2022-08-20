@@ -189,23 +189,7 @@ idlist m = case check "id" m of
 evalExpr :: Expr -> Machine -> IO Machine
 evalExpr e m = case e of
     Push lv -> return $ M.push (value lv) m
-    Call s  -> do
-        -- Funtion
-        let f = M.getFun (value s) m
-        case f of
-            Just body -> evalExprs body m
-            Nothing   -> do
-                -- Constant
-                let cnst = M.getConst (value s) m
-                case cnst of
-                    Just cv -> return $ M.push cv m
-                    Nothing -> do
-                        -- Binding
-                        let bind = M.get (value s) m
-                        case bind of
-                            Just b  -> return $ M.push b m
-                            Nothing -> return $ M.err ("A bind or a funtion not found: " ++ value s) m
-    Intr s -> case value s of
+    Call s  -> case value s of
         "+"  -> return $ add m
         "-"  -> return $ sub m
         "*"  -> return $ mul m
@@ -295,9 +279,22 @@ evalExpr e m = case e of
                         mf <- M.mFlush m'
                         M.mSleepms n mf
                     _ -> return $ M.err ("Expected int for sleep, got " ++ show a) m
-        -- Probably will never happen because
-        -- parser should've caught it
-        e -> error ("unreachable: " ++ e)
+        _ -> do
+        -- Funtion
+            let f = M.getFun (value s) m
+            case f of
+                Just body -> evalExprs body m
+                Nothing   -> do
+                    -- Constant
+                    let cnst = M.getConst (value s) m
+                    case cnst of
+                        Just cv -> return $ M.push cv m
+                        Nothing -> do
+                            -- Binding
+                            let bind = M.get (value s) m
+                            case bind of
+                                Just b  -> return $ M.push b m
+                                Nothing -> return $ M.err ("A bind or a funtion not found: " ++ value s) m
     If t f -> do
         let (b, m') = truth m
         if b == Just True then evalExprs t m' else evalExprs f m'

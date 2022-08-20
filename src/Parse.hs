@@ -38,7 +38,6 @@ printAtom a = case a of
 data Expr
     = Push (Locatable Atom)
     | Call (Locatable String)
-    | Intr (Locatable String)
     | If    Body Body
     | Try   Body String Body
     | Take  [String] Body
@@ -141,24 +140,10 @@ parseAtoms path source = parse (atoms <* eof <?> "atoms") path (pack source)
 push :: Parser Expr
 push = Push <$> atom
 
-intrList :: [String]
-intrList = [ "+", "-", "*", "/", "%", "^"
-    , "=", "<", ">", "<=", ">=", "!="
-    , "||", "&&", "!"
-    , "?"
-    , "@", "!.", "..", "!!", "//", "id", ".*"
-    , "stack", "rev", "dup", "drop", "swap", "over", "rot"
-    , "puts", "putsln"
-    , "gets", "flush", "sleep"
-    ]
-
-callintr :: Parser Expr
-callintr = do
+call :: Parser Expr
+call = do
     s <- getSourcePos
-    i <- ident
-    if i `elem` intrList
-        then return $ Intr $ Locatable (convSP s) i
-        else return $ Call $ Locatable (convSP s) i
+    Call . Locatable (convSP s) <$> ident
 
 ifelse :: Parser Expr
 ifelse = If <$> (keyword "if" *> symbol "{" *> exprs)
@@ -187,7 +172,7 @@ load :: Parser Expr
 load = Load <$> (keyword "load" *> symbol "(" *> ident <* symbol ")") <?> "load"
 
 expr :: Parser Expr
-expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> callintr <?> "expression"
+expr = ifelse <|> tryelse <|> takeblk <|> peekblk <|> while <|> push <|> store <|> load <|> call <?> "expression"
 
 exprs :: Parser Body
 exprs = many expr <?> "body"
@@ -195,7 +180,7 @@ exprs = many expr <?> "body"
 expr' :: Parser (Locatable Expr)
 expr' = do
     s <- getSourcePos
-    Locatable (convSP s) <$> (ifelse <|> tryelse <|> takeblk <|> peekblk <|> callintr <|> push <?> "expression")
+    Locatable (convSP s) <$> (ifelse <|> tryelse <|> takeblk <|> peekblk <|> call <|> push <?> "expression")
 
 exprs' :: Parser [Locatable Expr]
 exprs' = some expr' <?> "body"
@@ -258,7 +243,7 @@ errorUnpack peb = fmap (\(err, pos) -> (pos, pack . parseErrorTextPretty $ err))
     attachSourcePos errorOffset (bundleErrors peb) (bundlePosState peb)
 
 fmtErrors :: NonEmpty (SourcePos, Text) -> [String]
-fmtErrors = fmap 
+fmtErrors = fmap
     (\(pos, msg) -> sourceName pos ++ ":"
                 ++ (s . sourceLine) pos ++ ":"
                 ++ (s . sourceColumn) pos ++ " "
