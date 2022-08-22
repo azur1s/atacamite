@@ -1,5 +1,5 @@
-import #list ;; map
+import #list
 
 entry {
-    [5, 10, 15] \(2 *) map putsln
+    0 100000 nlist len drop
 }

@@ -1,69 +1,28 @@
 module Main where
 
-import Data.Either (isLeft, isRight)
-import Data.Text (Text)
-import Data.Void (Void)
-import Interpret (evalProgram)
-import Machine (initM, Machine(..))
-import Parse (parseProgram, fmtErrors, Program, Stmt(Import), Locatable (..), errorUnpack)
-import System.Directory (canonicalizePath, setCurrentDirectory, getHomeDirectory)
-import System.Environment (getArgs)
-import System.FilePath (takeDirectory, (</>))
-import System.IO (hPutStrLn, stderr)
-import Text.Megaparsec.Error (ParseErrorBundle)
-import System.Exit (exitWith, ExitCode(ExitFailure))
-
-getImports :: Program -> [String]
-getImports = map i . f
-    where
-        i = (\(Import path) -> path ++ ".ata") . value
-        f = filter (\s -> case value s of Import _ -> True; _ -> False)
-
--- TODO: check circular imports
-parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) Program)
-parseFile path = do
-    fullPath <- canonicalizePath path
-    setCurrentDirectory $ takeDirectory fullPath
-
-    contents <- readFile fullPath
-    case parseProgram path (contents ++ "\n") of
-        Left err -> return $ Left err
-        Right p -> do
-            let imports = getImports p
-            let paths = imports
-
-            let coreList = map tail (filter (\p -> head p `elem` "#") paths)
-            home <- getHomeDirectory
-            let coreFull = map (\c -> home </> ".atacamite" </> c) coreList
-            let paths' = coreFull ++ filter (\p -> head p `notElem` "#") paths
-
-            fullPaths <- mapM canonicalizePath paths'
-            progs' <- mapM parseFile fullPaths
-            let errs = filter isLeft progs'
-            if null errs then do
-                let ps = map (\(Right p) -> p) (filter isRight progs')
-                let all = concat ps ++ p
-                return $ Right all
-                else return $ Left $ head (map (\(Left e) -> e) errs)
-
-version :: String
-version = "atacamite version 0.1.0"
+import Interpreter ( Interpreter (..), evalStmts, initInterpreter )
+import System.IO ( hPutStrLn, stderr )
+import Types
+import qualified Control.Monad.Trans.Except as E
+import qualified Control.Monad.Trans.State  as S
 
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-        [path] -> do
-            x <- parseFile path
-            case x of
-                Left err -> do
-                    hPutStrLn stderr . concatMap ("\x1b[91mParse error:\x1b[0m " ++) . fmtErrors . errorUnpack $ err
-                    exitWith (ExitFailure 1)
-                Right p -> do
-                    let m = initM
-                    let m' = evalProgram p m
-                    m' >>= \x -> if fault x then do
-                        hPutStrLn stderr . last $ errors x
-                        exitWith (ExitFailure 1)
-                        else putStr . concat . reverse $ output x
-        _ -> putStrLn version
+    let e =
+            [
+                Function "print" [TypeGeneric "a"] [] [
+                    Call "puts",
+                    Push (unstr "\n"),
+                    Call "puts"
+                ],
+                Function "main" [] [] [
+                    Push (ValueList [ValueInt 1, ValueInt 2]),
+                    Push (ValueList [ValueInt 3]),
+                    Call "<",
+                    Call "print"
+                ]
+            ]
+    result <- S.runStateT (E.runExceptT (evalStmts e)) initInterpreter
+    case result of
+        (Left e, _)    -> hPutStrLn stderr ("\x1b[91mError:\x1b[0m " ++ e)
+        (Right (), i') -> putStr $ concat $ reverse $ bufio i'

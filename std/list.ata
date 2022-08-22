@@ -1,11 +1,15 @@
-import #prelude
+fun isEmptyList [a] -- Bool { [] = }
+fun head        [a] -- a    { !. swap drop }
+fun tail        [a] -- [a]  { !. drop }
 
-fun map [a], f -- [a] {
-    swap dup len store(len) store(a) store(f)
-    [] store(result)
-    0 while dup load(len) < {
-        dup load(a) swap @ load(f) apply
-        1 .* load(result) // store(result)
-        1 +
-    } drop load(result)
+fun __len__ [a] -- [a], Int {
+    dup isEmptyList if {
+        0
+    } else {
+        tail __len__ 1 +
+    }
+}
+
+fun len [a] -- Int {
+    __len__ swap drop
 }
