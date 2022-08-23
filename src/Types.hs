@@ -42,7 +42,7 @@ data Expression
     = Push Value
     | Call String
     | Quote [Expression]
-    | If [Expression] [Expression] [Expression]
+    | If [Expression] [Expression]
     | Try [Expression] [Expression]
     | Bind String
     deriving (Show, Eq, Ord)
@@ -50,7 +50,6 @@ data Expression
 data Type
     = TypeInt | TypeFloat | TypeBool | TypeChar | TypeList Type
     | TypeGeneric String
-    | TypeQuote   [Type] [Type]
     deriving (Show)
 
 data Statement

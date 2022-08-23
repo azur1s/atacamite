@@ -30,6 +30,10 @@ executable atacamite
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base ^>=4.14.3.0,
+                    -- parser
+                      megaparsec,
+                      text,
+                    -- monads
                       mtl,
                       transformers,
                       containers

@@ -48,8 +48,7 @@ envget s = T.lift S.get >>= \i -> case Map.lookup s (env i) of
     Nothing -> E.throwE $ "undefined variable: " ++ s
 
 funcset :: Statement -> InterpreterT ()
-funcset s = case s of
-    Function name args ret body ->
+funcset (Function name args ret body) =
         T.lift S.get >>= \i -> T.lift $ S.put i { funcs = Map.insert name (args, ret, body) (funcs i) }
 
 funcget :: String -> InterpreterT [Expression]
@@ -136,11 +135,9 @@ eval (Call n) = case n of
     _ -> funcexist n >>= \x -> if x then funcget n >>= evals
         else envget n >>= push
 eval (Quote q) = push $ ValueQuote q
-eval (If c t f) = do
-    evals c
-    pop >>= \x -> if x == ValueBool True
-        then evals t
-        else evals f
+eval (If t f) = pop >>= \x -> if x == ValueBool True
+    then evals t
+    else evals f
 eval (Try t c) = do
     try (evals t) `E.catchE` (\err -> do
         push (unstr err)

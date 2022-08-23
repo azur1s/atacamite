@@ -1,5 +1,1 @@
-import #list
-
-entry {
-    0 100000 nlist len drop
-}
+: main ([Char] -- Int) 34 35 + putsln .
