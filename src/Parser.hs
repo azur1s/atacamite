@@ -45,13 +45,13 @@ charl :: Parser Char
 charl = lexeme (char '\'' *> L.charLiteral <* char '\'')
 
 reserved :: [String]
-reserved = ["if", "else", "then", "try", "end", "true", "false"]
+reserved = ["if", "else", "then", "try", "catch", "end", "true", "false"]
 
 keyword :: Text -> Parser Text
 keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
 
 ident :: Parser String
-ident = lexeme $ do
+ident = lexeme . try $ do
     s <- (:) <$> oneOf first <*> many (oneOf rest)
     if s `elem` reserved
         then fail $ "reserved keyword: " ++ show s
@@ -109,7 +109,7 @@ ifelse = T.If <$ keyword "if" <*> many expr
 
 tryelse :: Parser T.Expression
 tryelse = T.Try <$ keyword "try" <*> many expr
-    <* keyword "else" <*> many expr <* keyword "end"
+    <* keyword "catch" <*> many expr <* keyword "end"
     <?> "try expression"
 
 bind :: Parser T.Expression
