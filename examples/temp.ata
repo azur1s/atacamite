@@ -1,15 +1,28 @@
-: main ([Char] -- Int)
+: main ()
     400 20 +
     420 = if
         "cool number"
     else
         "normal number"
-    then putsln
+    end putsln
 
-    try
-        1 +
-    catch -> err
-        "something bad happened: " puts
-        err putsln
+    "----------" putsln
+
+    3 2 1
+    take (a b c)
+        a putsln
+        b putsln
+        c putsln
     end
-.
+
+    "----------" putsln
+
+    0 while dup 10 < do
+        dup putsln
+        1 +
+    end drop
+
+    "----------" putsln
+
+    [1 2 3] 0 index putsln
+;

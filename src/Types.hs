@@ -30,6 +30,7 @@ instance Show Value where
     show (ValueFloat f) = show f
     show (ValueBool b)  = show b
     show (ValueChar c)  = show c
+    show (ValueList []) = "[]"
     show (ValueList l)  =
         if sameVariant l
         then case head l of
@@ -42,8 +43,10 @@ data Expression
     = Push Value
     | Call String
     | Quote [Expression]
-    | If [Expression] [Expression]
-    | Try [Expression] [Expression]
+    | If    [Expression] [Expression]
+    | Try   [Expression] [Expression]
+    | Take  [String]     [Expression]
+    | While [Expression] [Expression]
     | Bind String
     deriving (Show, Eq, Ord)
 

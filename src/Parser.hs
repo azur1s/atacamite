@@ -23,8 +23,8 @@ type Parser = Parsec Void Text
 sc :: Parser ()
 sc = L.space
     space1
-    (L.skipLineComment "//")
-    (L.skipBlockComment "/*" "*/")
+    (L.skipLineComment "\\")
+    (L.skipBlockComment "(*" "*)")
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
@@ -45,7 +45,7 @@ charl :: Parser Char
 charl = lexeme (char '\'' *> L.charLiteral <* char '\'')
 
 reserved :: [String]
-reserved = ["if", "else", "then", "try", "catch", "end", "true", "false"]
+reserved = ["if", "else", "then", "try", "catch", "while", "do", "end", "true", "false"]
 
 keyword :: Text -> Parser Text
 keyword k = lexeme (string k <* notFollowedBy alphaNumChar)
@@ -87,7 +87,7 @@ valueList :: Parser T.Value
 valueList = T.ValueList <$> between (symbol "[") (symbol "]") (many value)
 
 value :: Parser T.Value
-value = valueInt <|> valueFloat <|> valueBool <|> valueChar <|> valueString <|> valueList
+value = try valueFloat <|> valueInt <|> valueBool <|> valueChar <|> valueString <|> valueList
     <?> "literals"
 
 -- | Expression
@@ -104,7 +104,7 @@ quote = T.Quote <$> between (symbol "(") (symbol ")") (many expr)
 
 ifelse :: Parser T.Expression
 ifelse = T.If <$ keyword "if" <*> many expr
-    <* keyword "else" <*> many expr <* keyword "then"
+    <* keyword "else" <*> many expr <* keyword "end"
     <?> "if expression"
 
 tryelse :: Parser T.Expression
@@ -112,11 +112,24 @@ tryelse = T.Try <$ keyword "try" <*> many expr
     <* keyword "catch" <*> many expr <* keyword "end"
     <?> "try expression"
 
+takeblock :: Parser T.Expression
+takeblock = T.Take <$ keyword "take"
+    <* symbol "(" <*> some ident <* symbol ")"
+    <*> many expr <* keyword "end"
+    <?> "take expression"
+
+while :: Parser T.Expression
+while = T.While <$ keyword "while" <*> some expr
+    <* keyword "do" <*> many expr <* symbol "end"
+    <?> "while expression"
+
 bind :: Parser T.Expression
 bind = T.Bind <$> (symbol "->" *> ident) <?> "bind expression"
 
 expr :: Parser T.Expression
-expr = ifelse <|> tryelse <|> quote <|> bind <|> call <|> push
+expr = ifelse <|> tryelse <|> takeblock <|> while
+    <|> quote <|> bind
+    <|> call <|> push
     <?> "expression"
 
 -- | Typehint parsers
@@ -134,11 +147,12 @@ ty = T.TypeInt         <$ keyword "Int"
 function :: Parser T.Statement
 function = do
     name <- symbol ":" *> ident
-    args <- symbol "(" *> sepBy ty (symbol ",")
-    rets <- optional (symbol "--" *> sepBy ty (symbol ","))
+    _    <- symbol "("
+    args <- optional (sepBy ty (symbol ","))
+    rets <- optional (symbol "->" *> sepBy ty (symbol ","))
     _    <- symbol ")"
-    body <- some expr <* symbol "."
-    return $ T.Function name args (fromMaybe [] rets) body
+    body <- some expr <* symbol ";"
+    return $ T.Function name (fromMaybe [] args) (fromMaybe [] rets) body
     <?> "function statement"
 
 stmt :: Parser T.Statement

@@ -1,7 +1,7 @@
 module Main where
 
-import Parser (parseAll, errorUnpack, fmtErrors)
 import Interpreter (Interpreter (..), evalStmts, initInterpreter )
+import Parser (parseAll, errorUnpack, fmtErrors)
 import System.Environment (getArgs)
 import System.IO (hPutStrLn, stderr)
 import qualified Control.Monad.Trans.Except as E
@@ -22,4 +22,4 @@ main = do
                     case result of
                         (Left e, _)    -> hPutStrLn stderr ("\x1b[91mRuntime Error:\x1b[0m " ++ e)
                         (Right (), i') -> putStr $ concat $ reverse $ bufio i'
-        _ -> putStrLn "0.1.0"
+        _ -> putStrLn "0.1.0.0"

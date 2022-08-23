@@ -1,63 +1,98 @@
-import #prelude
+: __len__ ([a] -> [a], Int)
+    dup [] = if 0 else tail __len__ 1 + end
+;
 
-const starting-tape [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-]
+: len ([a] -> Int)
+    __len__ swap drop
+;
 
-fun fmtTape [Int] {
-  dup len
-  take tape' len' {
-    0 while dup len' < {
-      tape' swap dup rot @ 1 =
-      if { "█" } else { " " } puts
-      1 +
-    } drop
-  }
-}
+: starting-tape (-> [Int])
+    [
+        0 0 0 0 0 0 0 0 0 0
+        0 0 0 0 0 0 0 0 0 0
+        0 0 0 0 0 0 0 0 0 0
+        0 0 0 0 0 0 0 0 0 1
+    ]
+;
 
-fun nextTape [Int] -- [Int] {
-  dup len
-  [] store(result)
-  take tape' len' {
-    0 while dup len' < {
-      ;; get index
-      dup 1 - dup 0 < if { drop len' 1 - } else { } store(a) 
-      dup store(b)
-      dup 1 + dup len' 1 - > if { drop 0 } else { } store(c)
+: fmtTape ([Int])
+    \ [tape]
+    dup \ [tape tape]
+    len \ [i tape]
+    take (l t) \ pop i -> l, pop tape -> t
+        0 while dup l < do
+            \ [i]
+            t     \ [tape i]
+            swap  \ [i tape]
+            dup   \ [i i tape]
+            rot   \ [i tape i]
+            index \ [idx i]
+            1 =   \ [bool i]
+            if "█" else " " end \ [string i]
+            puts  \ [i]
+            1 +   \ [i]
+        end drop
+    end
+;
 
-      tape' load(c) @ 
-      tape' load(b) @
-      tape' load(a) @
-      3 .*
-      2 store(r)
-      dup [1, 1, 1] = if { 0 store(r) } else { }
-      dup [1, 1, 0] = if { 1 store(r) } else { }
-      dup [1, 0, 1] = if { 1 store(r) } else { }
-      dup [1, 0, 0] = if { 0 store(r) } else { }
-      dup [0, 1, 1] = if { 1 store(r) } else { }
-      dup [0, 1, 0] = if { 1 store(r) } else { }
-      dup [0, 0, 1] = if { 1 store(r) } else { }
-      dup [0, 0, 0] = if { 0 store(r) } else { }
-      drop load(r)
-      dup 1 > if { drop 0 } else { } ;; clamp
-      1 .* load(result) //
-      store(result)
-      1 +
-    } drop
-  }
-  load(result)
-}
+: nextTape ([Int] -> [Int])
+    dup len
+    [] -> result
+    take (l t)
+        0 while dup l < do
+            \ [i]
+            dup \ [i* i]
+            1 - \ [i* i]
+            dup \ [i* i* i]
+            0 < \ [bool i]
+            if drop l 1 - else end \ [i* i]
+            -> a \ [i], pop i* -> a
 
-entry {
-  starting-tape store(tape)
-  load(tape) len store(amount)
-  load(tape) fmtTape
-  0 while dup load(amount) < {
-    "" putsln
-    load(tape) nextTape store(tape)
-    load(tape) fmtTape
-    1 +
-  }
-}
+            dup  \ [i* i]
+            -> b \ [i], pop i* -> b
+
+            dup   \ [i* i]
+            1 +   \ [i* i]
+            dup   \ [i* i* i]
+            l     \ [len i* i* i]
+            1 - > \ [bool i* i]
+            if drop 0 else end \ [i* i]
+            -> c  \ [i], pop i* -> c
+            t c index \ [c i]
+            t b index \ [b c i]
+            t a index \ [a b c i]
+            3 collect \ [[a b c] i]
+            2 -> r
+            dup [1 1 1] = if 0 -> r else end
+            dup [1 1 0] = if 1 -> r else end
+            dup [1 0 1] = if 1 -> r else end
+            dup [1 0 0] = if 0 -> r else end
+            dup [0 1 1] = if 1 -> r else end
+            dup [0 1 0] = if 1 -> r else end
+            dup [0 0 1] = if 1 -> r else end
+            dup [0 0 0] = if 0 -> r else end
+            drop
+            r
+            \ [i* i]
+            dup 1 > if drop 0 else end \ clamp
+            1 collect     \ [[i*] i]
+            result        \ [[r..] [i*] i]
+            join          \ [[i* : r] i]
+            -> result     \ [i], pop [i* : r] -> resulta
+            1 +
+        end drop
+    end
+    result
+;
+
+: main ()
+    starting-tape -> tape
+    tape len -> amount
+    tape fmtTape
+    0 while dup amount < do
+        "\n" puts
+        tape nextTape -> tape
+        tape fmtTape
+        1 +
+    end
+;
