@@ -1,9 +1,0 @@
-import #prelude
-
-fun strlen String -- Int {
-    !! len
-}
-
-fun concat String, String -- String {
-    !! swap !! // ..
-}
