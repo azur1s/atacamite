@@ -1,7 +1,20 @@
-: __len__ (([a] -> [a]), Int)
+: empty? ([a] -> Bool) [] = ;
+: decons ([a] -> a, [a]) dup head swap tail swap ;
+
+: __len__ ([a] -> [a], Int)
     dup [] = if 0 else tail __len__ 1 + end
 ;
 
 : len ([a] -> Int)
     __len__ swap drop
 ;
+
+: __rev__ ()
+    dup empty? if
+        \ do nothing
+    else
+        decons rot swap 1 collect join swap __rev__
+    end
+;
+
+: rev () [] swap __rev__ drop ;

@@ -113,7 +113,7 @@ eval (Call n) = case n of
         pop >>= \a -> pop >>= \b -> push a >> push b >> push a
     "rot" -> do
         require n 3
-        pop >>= \a -> pop >>= \b -> pop >>= \c -> push b >> push c >> push a
+        pop >>= \a -> pop >>= \b -> pop >>= \c -> push b >> push a >> push c
     "apply" -> do
         require n 2
         pop >>= \x -> if isq x then evals (unq x) else E.throwE "not a function"

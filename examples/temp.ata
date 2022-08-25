@@ -1,9 +1,5 @@
-use "std/list"
-
-: test ((a -> a) -> a)
-    10 swap apply
-;
+use "std/list"    \ empty?
 
 : main ()
-    (1 +) test putsln
+    [1 2 3] rev putsln
 ;

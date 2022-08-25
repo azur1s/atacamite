@@ -1,7 +1,7 @@
-all: install install-lib
+all: bin lib
 
-install:
+bin:
 	cabal install --overwrite-policy=always
 
-install-lib:
+lib:
 	cp std/*.ata ${HOME}/.atacamite/
