@@ -9,7 +9,7 @@
     __len__ swap drop
 ;
 
-: __rev__ ()
+: __rev__ ([a], [r] -> [a], [r])
     dup empty? if
         \ do nothing
     else
@@ -17,4 +17,4 @@
     end
 ;
 
-: rev () [] swap __rev__ drop ;
+: rev ([a] -> [a]) [] swap __rev__ drop ;
