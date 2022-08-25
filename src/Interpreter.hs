@@ -37,14 +37,19 @@ push x = T.lift S.get >>= \i -> T.lift $ S.put i { stack = x : stack i }
 
 pop :: InterpreterT Value
 pop = T.lift S.get >>= \i -> case stack i of
-        [] -> E.throwE "stack underflow"
+        [] -> E.throwE "stack underflow while popping"
         (v:vs) -> do
             T.lift $ S.put i { stack = vs }
             return v
 
+peek :: InterpreterT Value
+peek = T.lift S.get >>= \i -> case stack i of
+        [] -> E.throwE "stack underflow while peeking"
+        (v:_) -> return v
+
 popn :: Int -> InterpreterT [Value]
 popn n = T.lift S.get >>= \i -> case splitAt n (stack i) of
-        ([], _) -> E.throwE "stack underflow"
+        ([], _) -> E.throwE "stack underflow while popping multiple elements"
         (vs, _) -> do
             T.lift $ S.put i { stack = drop n (stack i) }
             return vs
@@ -96,7 +101,9 @@ funcexist s = T.lift S.get >>= \i -> case Map.lookup s (funcs i) of
 eval :: Expression -> InterpreterT ()
 eval (Push x) = push x
 eval (Call n) = case n of
-    -- Stack-related functions
+
+    -- Stack-related functions --
+
     "dup" -> do
         require n 1
         pop >>= \x -> push x >> push x
@@ -121,7 +128,9 @@ eval (Call n) = case n of
               isq _              = False
               unq (ValueQuote q) = q
               unq _              = error "unreachable"
-    -- Arithmetic functions
+
+    -- Arithmetic functions --
+
     "+" -> do
         require n 2
         pop >>= \x -> pop >>= \y -> case (x, y) of
@@ -154,7 +163,9 @@ eval (Call n) = case n of
     "=" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (x == y)
     "<" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y < x)
     ">" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y > x)
-    -- List & conversions functions
+
+    -- List & conversions functions --
+
     "collect" -> require n 1 >> pop >>= \x -> case x of
         ValueInt amount -> require n amount >> popn amount >>= push . ValueList
         _ -> undefined
@@ -175,12 +186,18 @@ eval (Call n) = case n of
             else push $ xs !! a
         _ -> E.throwE "index: type error"
     "tostr"  -> require n 1 >> pop >>= \x -> push $ (unstr . show) x
-    -- IO functions
-    "debug"  -> T.lift S.get >>= \i -> putbuf (show (stack i) ++ "\n") >> flushbuf
-    "puts"   -> require n 1 >> pop >>= putbuf . show
-    "putsln" -> require n 1 >> pop >>= \x -> putbuf (show x ++ "\n")
-    "gets"   -> T.liftIO getLine >>= \l -> push $ ValueList $ map ValueChar l
-    "flush"  -> flushbuf
+
+    -- IO functions --
+
+    "debug"   -> T.lift S.get >>= \i -> putbuf (show (stack i) ++ "\n") >> flushbuf
+    "gets"    -> T.liftIO getLine >>= \l -> push $ ValueList $ map ValueChar l
+    "flush"   -> flushbuf
+    -- Destructive printing
+    "puts"    -> require n 1 >> pop >>= putbuf . show
+    "putsln"  -> require n 1 >> pop >>= \x -> putbuf (show x ++ "\n")
+    -- Non-destructive printing
+    "sputs"   -> require n 1 >> peek >>= putbuf . show
+    "sputsln" -> require n 1 >> peek >>= \x -> putbuf (show x ++ "\n")
     _ -> funcexist n >>= \x -> if x then funcget n >>= evals
         else envget n >>= push
 eval (Quote q) = push $ ValueQuote q
