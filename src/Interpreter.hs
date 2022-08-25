@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 module Interpreter where
 
 import GHC.Base (when)
@@ -156,17 +155,17 @@ eval (Call n) = case n of
     "<" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y < x)
     ">" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y > x)
     -- List & conversions functions
-    "collect" -> require n 1 >> pop >>= \case
+    "collect" -> require n 1 >> pop >>= \x -> case x of
         ValueInt amount -> require n amount >> popn amount >>= push . ValueList
         _ -> undefined
     "join" -> require n 2 >> pop >>= \x -> pop >>= \y -> case (x, y) of
         (ValueList a, ValueList b) -> push $ ValueList (a ++ b)
         _ -> E.throwE "join: type error"
-    "head" -> require n 1 >> pop >>= \case
+    "head" -> require n 1 >> pop >>= \x -> case x of
         ValueList [] -> E.throwE "head: empty list"
         ValueList (x:_) -> push x
         _ -> E.throwE "head: type error"
-    "tail" -> require n 1 >> pop >>= \case
+    "tail" -> require n 1 >> pop >>= \x -> case x of
         ValueList [] -> E.throwE "head: empty list"
         ValueList (_:xs) -> push $ ValueList xs
         _ -> E.throwE "tail: type error"
