@@ -1,9 +1,7 @@
 # Atacamite
-A (soon to be) statically typed, stack-based programming language implemented in Haskell.
+An interpreted stack-based programming language implemented in Haskell.
 
 Take a look at  [examples](https://github.com/azur1s/atacamite/tree/main/examples) directory and try out some programs!
-
-> I'm not an expert at Haskell by any means, If you found something that can be implemented in a better way or something that shouldn't be done, please make a full request :D I feel like a lot of stuffs can be done in a better way, but I just don't know how (especially monads).
 
 ### Building
 If you want to install from source, or to work on it, you should use `cabal` for building.
@@ -19,4 +17,4 @@ If you want to install `atacamite` on your system and also install the standard 
 ```
 make
 ```
-it will run `cabal install` and then copies the standard library for you. The binary will be installed to `$HOME/.cabal/bin/atacamite`
+it will run `cabal install` and then copies the standard library to `$HOME/.atacamite/` (default). The binary will be installed to `$HOME/.cabal/bin/atacamite`

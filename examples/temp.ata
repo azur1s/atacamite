@@ -1,6 +1,9 @@
 use "std/list"
-use "foo"
+
+: test ((a -> a) -> a)
+    10 swap apply
+;
+
 : main ()
-    test
-    [ 1 2 3 ] len putsln
+    (1 +) test putsln
 ;

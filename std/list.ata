@@ -1,4 +1,4 @@
-: __len__ ([a] -> [a], Int)
+: __len__ (([a] -> [a]), Int)
     dup [] = if 0 else tail __len__ 1 + end
 ;
 

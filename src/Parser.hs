@@ -145,6 +145,11 @@ ty = T.TypeInt         <$ keyword "Int"
     <|> T.TypeChar     <$ keyword "Char"
     <|> T.TypeList     <$> (symbol "[" *> ty <* symbol "]")
     <|> T.TypeGeneric  <$> tyident
+    <|> do
+        tys <- symbol "(" *> many ty
+        ret <- optional (symbol "->" *> many ty)
+        _   <- symbol ")"
+        return $ T.TypeFunction tys (fromMaybe [] ret)
 
 -- | Statement parsers
 
