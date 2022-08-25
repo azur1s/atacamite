@@ -172,6 +172,9 @@ eval (Call n) = case n of
     "join" -> require n 2 >> pop >>= \x -> pop >>= \y -> case (x, y) of
         (ValueList a, ValueList b) -> push $ ValueList (a ++ b)
         _ -> E.throwE "join: type error"
+    "unjoin" -> require n 1 >> pop >>= \x -> case x of
+        ValueList a -> mapM_ push (reverse a)
+        _ -> E.throwE "unjoin: type error"
     "head" -> require n 1 >> pop >>= \x -> case x of
         ValueList [] -> E.throwE "head: empty list"
         ValueList (x:_) -> push x

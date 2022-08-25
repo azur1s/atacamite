@@ -54,6 +54,7 @@ data Type
     = TypeInt | TypeFloat | TypeBool | TypeChar | TypeList Type
     | TypeGeneric String
     | TypeFunction [Type] [Type]
+    | TypeMaybe Type
     deriving (Show)
 
 data Statement

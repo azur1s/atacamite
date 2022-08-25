@@ -1,5 +1,7 @@
-use "std/list"    \ empty?
+use "std/prelude"
 
 : main ()
-    [1 2 3] rev putsln
+    stack? putsln
+    1 stack? putsln drop
+    2 1 stack? putsln drop drop
 ;
