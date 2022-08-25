@@ -1,3 +1,0 @@
-fun print_world -- {
-    "World!" puts
-}

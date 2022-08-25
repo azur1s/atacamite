@@ -1,5 +1,0 @@
-import #strings
-
-entry {
-    "Test" strlen puts
-}

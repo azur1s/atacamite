@@ -53,8 +53,10 @@ data Expression
 data Type
     = TypeInt | TypeFloat | TypeBool | TypeChar | TypeList Type
     | TypeGeneric String
+    | TypeFunction [Type] [Type]
     deriving (Show)
 
 data Statement
-    = Function String [Type] [Type] [Expression]
+    = Use      String
+    | Function String [Type] [Type] [Expression]
     deriving (Show)

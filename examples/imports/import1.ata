@@ -1,5 +1,0 @@
-import import2
-
-entry {
-    "Hello " puts print_world
-}

@@ -1,7 +1,7 @@
 module Main where
 
 import Interpreter (Interpreter (..), evalStmts, initInterpreter )
-import Parser (parseAll, errorUnpack, fmtErrors)
+import Parser (parseFile, errorUnpack, fmtErrors)
 import System.Environment (getArgs)
 import System.IO (hPutStrLn, stderr)
 import qualified Control.Monad.Trans.Except as E
@@ -12,8 +12,8 @@ main = do
     args <- getArgs
     case args of
         [path] -> do
-            contents <- readFile path
-            case parseAll path contents of
+            pres <- parseFile path
+            case pres of
                 Left err -> hPutStrLn stderr 
                     . concatMap ("\x1b[91mParse error:\x1b[0m " ++)
                     . fmtErrors . errorUnpack $ err

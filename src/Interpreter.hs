@@ -8,6 +8,7 @@ import qualified Control.Monad.Trans.Except as E
 import qualified Control.Monad.Trans.State  as S
 import qualified Data.Map                   as Map
 
+-- | Main interpreter data types
 data Interpreter = Interpreter
     { stack :: [Value]
     , bufio :: [String]
@@ -20,10 +21,20 @@ initInterpreter = Interpreter [] [] Map.empty Map.empty
 
 type InterpreterT a = E.ExceptT String (S.StateT Interpreter IO) a
 
+-- | Stack based operations for the interpreter
+
 try :: InterpreterT a -> InterpreterT a
 try f = do
     s <- T.lift S.get
     f `E.catchE` (\e -> T.lift (S.put s) >> E.throwE e)
+
+require :: String -> Int -> InterpreterT ()
+require f n = T.lift S.get >>= \i -> if length (stack i) >= n
+    then return ()
+    else E.throwE $ "not enough element on the stack for " ++ f ++ ""
+
+push :: Value -> InterpreterT ()
+push x = T.lift S.get >>= \i -> T.lift $ S.put i { stack = x : stack i }
 
 pop :: InterpreterT Value
 pop = T.lift S.get >>= \i -> case stack i of
@@ -39,6 +50,8 @@ popn n = T.lift S.get >>= \i -> case splitAt n (stack i) of
             T.lift $ S.put i { stack = drop n (stack i) }
             return vs
 
+-- | IO operations
+
 putbuf :: String -> InterpreterT ()
 putbuf s = T.lift S.get >>= \i -> T.lift $ S.put i { bufio = s : bufio i }
 
@@ -46,6 +59,8 @@ flushbuf :: InterpreterT ()
 flushbuf = T.lift S.get >>= \i -> do
     T.liftIO $ putStr $ concat $ reverse $ bufio i
     T.lift $ S.put i { bufio = [] }
+
+-- | Variable and environment bindings
 
 envset :: String -> Value -> InterpreterT ()
 envset s v = T.lift S.get >>= \i -> T.lift $ S.put i { env = Map.insert s v (env i) }
@@ -67,6 +82,7 @@ envget s = T.lift S.get >>= \i -> case Map.lookup s (env i) of
 funcset :: Statement -> InterpreterT ()
 funcset (Function name args ret body) =
         T.lift S.get >>= \i -> T.lift $ S.put i { funcs = Map.insert name (args, ret, body) (funcs i) }
+funcset _ = error "unreachable"
 
 funcget :: String -> InterpreterT [Expression]
 funcget s = T.lift S.get >>= \i -> case Map.lookup s (funcs i) of
@@ -78,18 +94,10 @@ funcexist s = T.lift S.get >>= \i -> case Map.lookup s (funcs i) of
     Just _ -> return True
     Nothing -> return False
 
-push :: Value -> InterpreterT ()
-push x = T.lift S.get >>= \i -> T.lift $ S.put i { stack = x : stack i }
-
-require :: String -> Int -> InterpreterT ()
-require f n = T.lift S.get >>= \i -> if length (stack i) >= n
-    then return ()
-    else E.throwE $ "not enough element on the stack for " ++ f ++ ""
-
 eval :: Expression -> InterpreterT ()
 eval (Push x) = push x
 eval (Call n) = case n of
-    -- Stack
+    -- Stack-related functions
     "dup" -> do
         require n 1
         pop >>= \x -> push x >> push x
@@ -114,7 +122,7 @@ eval (Call n) = case n of
               isq _              = False
               unq (ValueQuote q) = q
               unq _              = error "unreachable"
-    -- Math
+    -- Arithmetic functions
     "+" -> do
         require n 2
         pop >>= \x -> pop >>= \y -> case (x, y) of
@@ -147,7 +155,7 @@ eval (Call n) = case n of
     "=" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (x == y)
     "<" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y < x)
     ">" -> require n 2 >> pop >>= \x -> pop >>= \y -> push $ ValueBool (y > x)
-    -- List & conversions
+    -- List & conversions functions
     "collect" -> require n 1 >> pop >>= \case
         ValueInt amount -> require n amount >> popn amount >>= push . ValueList
         _ -> undefined
@@ -168,7 +176,7 @@ eval (Call n) = case n of
             else push $ xs !! a
         _ -> E.throwE "index: type error"
     "tostr"  -> require n 1 >> pop >>= \x -> push $ (unstr . show) x
-    -- IO
+    -- IO functions
     "debug"  -> T.lift S.get >>= \i -> putbuf (show (stack i) ++ "\n") >> flushbuf
     "puts"   -> require n 1 >> pop >>= putbuf . show
     "putsln" -> require n 1 >> pop >>= \x -> putbuf (show x ++ "\n")
@@ -182,20 +190,20 @@ eval (If t f) = pop >>= \x -> if x == ValueBool True
     else evals f
 eval (Try t c) = do
     try (evals t) `E.catchE` (\err -> do
-        push (unstr err)
+        push (unstr err) -- Push the error message to the stack
         evals c)
 eval (Take ns f) = do
     let len = length ns
     "take" `require` len >> popn len >>=
         \xs -> envsets (zip ns xs) >> evals f >> envunsets ns
-eval (While c f) = do
-    evals c >> pop >>= \x -> when (x == ValueBool True) $ evals f >> eval (While c f)
+eval (While c f) = evals c >> pop >>= \x -> when (x == ValueBool True) $ evals f >> eval (While c f)
 eval (Bind name) = "binding" `require` 1 >> pop >>= \x -> envset name x
 
 evals :: [Expression] -> InterpreterT ()
 evals = mapM_ eval
 
 evalStmt :: Statement -> InterpreterT ()
+evalStmt (Use _) = return ()
 evalStmt (Function name args ret body) = do
     funcset (Function name args ret body)
     when (name == "main") $ evals body

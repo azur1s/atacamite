@@ -1,12 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Parser where
 
+import Data.Either (isLeft, isRight)
 import Data.Foldable (toList)
 import Data.Functor (($>))
+import Data.List (isPrefixOf)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
+import System.Directory (canonicalizePath, setCurrentDirectory, getHomeDirectory)
+import System.FilePath (takeDirectory, (</>))
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -144,6 +148,9 @@ ty = T.TypeInt         <$ keyword "Int"
 
 -- | Statement parsers
 
+use :: Parser T.Statement
+use = T.Use <$ keyword "use" <*> stringl <?> "use statement"
+
 function :: Parser T.Statement
 function = do
     name <- symbol ":" *> ident
@@ -156,10 +163,42 @@ function = do
     <?> "function statement"
 
 stmt :: Parser T.Statement
-stmt = function <?> "statement"
+stmt = use <|> function <?> "statement"
 
 parseAll :: String -> String -> Either (ParseErrorBundle Text Void) [T.Statement]
 parseAll path source = parse (sc *> many stmt <* eof <?> "statements") path (pack source)
+
+-- | Miscellaneous functions
+
+parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) [T.Statement])
+parseFile path = do
+    fullPath <- canonicalizePath path
+    setCurrentDirectory $ takeDirectory fullPath
+
+    contents <- readFile fullPath
+    case parseAll path (contents ++ "\n") of
+        Left err -> return $ Left err
+        Right p -> do
+            let imports = getImports p
+
+            home <- getHomeDirectory
+            let coreFull = map
+                    (\c -> home </> ".atacamite" </> drop 4 c)  -- ~/.atacamite/..
+                    (filter (isPrefixOf "std/") imports) -- use std/..
+            let paths' = coreFull ++ filter (not . isPrefixOf "std/") imports
+
+            progs' <- mapM canonicalizePath paths' >>= \x -> mapM parseFile x
+            let errs = filter isLeft progs'
+            if null errs then do
+                let ps = map (\(Right p) -> p) (filter isRight progs')
+                let all = concat ps ++ p
+                return $ Right all
+                else return $ Left $ head (map (\(Left e) -> e) errs)
+    where
+        getImports = map i . f
+            where
+                i = \(T.Use path) -> path ++ ".ata"
+                f = filter (\s -> case s of T.Use _ -> True; _ -> False)
 
 errorUnpack :: ParseErrorBundle Text Void -> NonEmpty (SourcePos, Text)
 errorUnpack peb = fmap (\(err, pos) -> (pos, pack . parseErrorTextPretty $ err)) . fst $
