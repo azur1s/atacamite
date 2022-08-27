@@ -4,7 +4,7 @@
 (* Stack operation for pairs *)
 : dup2 (a, b -> a, b, a, b) swap dup rot dup rot swap ;
 : drop2 (a, b) drop drop ;
-: swap2 (a, b, c, d -> c, d, a, b) swap 4 rev swap ;
+: swap2 (a, b, c, d -> c, d, a, b) swap 4 srev swap ;
 : over2 (a, b, c, d -> c, d, a, b, c, d)
     2 collect rot rot 2 collect
     dup rot swap

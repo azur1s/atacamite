@@ -124,10 +124,10 @@ eval (Call n) = case n of
     "rot" -> do
         require n 3
         pop >>= \a -> pop >>= \b -> pop >>= \c -> push b >> push a >> push c
-    "rev" -> do
+    "srev" -> do
         require n 1 >> pop >>= \x -> case x of
             ValueInt amount -> require n amount >> popn amount >>= \xs -> (pushn . reverse) xs
-            _ -> E.throwE "rev: top element must be an integer"
+            _ -> E.throwE "srev: top element must be an integer"
     "apply" -> do
         require n 2
         pop >>= \x -> if isq x then evals (unq x) else E.throwE "not a function"
