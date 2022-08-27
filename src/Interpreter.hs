@@ -35,6 +35,9 @@ require f n = T.lift S.get >>= \i -> if length (stack i) >= n
 push :: Value -> InterpreterT ()
 push x = T.lift S.get >>= \i -> T.lift $ S.put i { stack = x : stack i }
 
+pushn :: [Value] -> InterpreterT ()
+pushn xs = T.lift S.get >>= \i -> T.lift $ S.put i { stack = xs ++ stack i }
+
 pop :: InterpreterT Value
 pop = T.lift S.get >>= \i -> case stack i of
         [] -> E.throwE "stack underflow while popping"
@@ -121,6 +124,10 @@ eval (Call n) = case n of
     "rot" -> do
         require n 3
         pop >>= \a -> pop >>= \b -> pop >>= \c -> push b >> push a >> push c
+    "rev" -> do
+        require n 1 >> pop >>= \x -> case x of
+            ValueInt amount -> require n amount >> popn amount >>= \xs -> (pushn . reverse) xs
+            _ -> E.throwE "rev: top element must be an integer"
     "apply" -> do
         require n 2
         pop >>= \x -> if isq x then evals (unq x) else E.throwE "not a function"
@@ -168,7 +175,7 @@ eval (Call n) = case n of
 
     "collect" -> require n 1 >> pop >>= \x -> case x of
         ValueInt amount -> require n amount >> popn amount >>= push . ValueList
-        _ -> undefined
+        _ -> E.throwE "collect: top element must be an integer"
     "join" -> require n 2 >> pop >>= \x -> pop >>= \y -> case (x, y) of
         (ValueList a, ValueList b) -> push $ ValueList (a ++ b)
         _ -> E.throwE "join: type error"

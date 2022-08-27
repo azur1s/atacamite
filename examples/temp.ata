@@ -1,7 +1,5 @@
 use "std/prelude"
 
 : main ()
-    stack? putsln
-    1 stack? putsln drop
-    2 1 stack? putsln drop drop
+    4 3 2 1 3 rev debug
 ;

@@ -17,6 +17,7 @@ import qualified Types                      as T
 
 parseFile :: FilePath -> IO (Either (ParseErrorBundle Text Void) [T.Statement])
 parseFile path = do
+    -- Set working directory to the file's directory
     fullPath <- canonicalizePath path
     setCurrentDirectory $ takeDirectory fullPath
 
@@ -27,11 +28,13 @@ parseFile path = do
             let imports = getImports p
 
             home <- getHomeDirectory
+            -- Map all import that starts with "std/.." to their full path "~/.atacamite/.."
             let coreFull = map
-                    (\c -> home </> ".atacamite" </> drop 4 c)  -- ~/.atacamite/..
-                    (filter (isPrefixOf "std/") imports) -- use std/..
+                    (\c -> home </> ".atacamite" </> drop 4 c)  -- drop 4 is to remove "std/"
+                    (filter (isPrefixOf "std/") imports)
             let paths' = coreFull ++ filter (not . isPrefixOf "std/") imports
 
+            -- Parse all files
             progs' <- mapM canonicalizePath paths' >>= \x -> mapM parseFile x
             let errs = filter isLeft progs'
             if null errs then do
@@ -40,10 +43,8 @@ parseFile path = do
                 return $ Right all
                 else return $ Left $ head (map (\(Left e) -> e) errs)
     where
-        getImports = map i . f
-            where
-                i = \(T.Use path) -> path ++ ".ata"
-                f = filter (\s -> case s of T.Use _ -> True; _ -> False)
+        getImports = map
+            (\(T.Use path) -> path ++ ".ata") . filter (\s -> case s of T.Use _ -> True; _ -> False)
 
 main :: IO ()
 main = do
