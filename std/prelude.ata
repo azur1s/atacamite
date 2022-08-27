@@ -2,16 +2,11 @@
 : stack? (?a -> Bool) try dup drop true catch drop false end ;
 
 (* Stack operation for pairs *)
-\ Helper function to collect 4 elements on stack into 2 pairs
-: __2pairs__ (a, a, b, b -> [a], [b]) 2 collect rot rot 2 collect ;
-
 : dup2 (a, b -> a, b, a, b) swap dup rot dup rot swap ;
 : drop2 (a, b) drop drop ;
-: swap2 (a, b, c, d -> c, d, a, b)
-    2 collect rot rot 2 collect swap
-    unjoin rot unjoin
-;
+: swap2 (a, b, c, d -> c, d, a, b) swap 4 rev swap ;
 : over2 (a, b, c, d -> c, d, a, b, c, d)
-    __2pairs__ dup rot swap
+    2 collect rot rot 2 collect
+    dup rot swap
     unjoin swap2 unjoin rot unjoin
 ;
